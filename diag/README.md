@@ -13,5 +13,6 @@ Interface for `diag_memory_test`:
 - precondition: the range does not wrap through `0000h` and must not contain
   live stack or code storage.
 
-The routine is intentionally independent of CP/M, Jukuravi I/O, and a stack.
-Those environments supply their own entry point, range, reporting, and policy.
+The routine is intentionally independent of CP/M and Jukuravi I/O, and uses no
+stack space beyond its CALL return address. Those environments supply their own
+entry point, safe range, reporting, and policy.
