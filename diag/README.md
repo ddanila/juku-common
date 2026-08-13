@@ -16,3 +16,26 @@ Interface for `diag_memory_test`:
 The routine is intentionally independent of CP/M and Jukuravi I/O, and uses no
 stack space beyond its CALL return address. Those environments supply their own
 entry point, safe range, reporting, and policy.
+
+## Future shared diagnostic suite
+
+Keep `diag_memory_test` and the current no-argument CP/M `DIAG.COM` wrapper as
+the small, non-destructive baseline. Future work should move the reusable test
+cores proven by the Jukuravi diagnostic ROMs into this directory and expose
+them through thin environment-specific front ends:
+
+- 8080 instruction/flag and register-path tests;
+- ROM integrity and RAM data/address/retention tests, including per-bit failure
+  masks suitable for identifying D84..D91;
+- PIC, PPI, PIT/D54-D55-D57, and local 8251 tests;
+- framebuffer/video-path and clock/timing probes where they are safe under a
+  running system.
+
+The common routines should contain mechanisms and structured results, not ROM
+beeps, serial framing, CP/M printing, or test policy. Jukuravi can continue to
+provide the reset-safe ROM/host interface, while `DIAG.COM` can grow a readable
+command-line selector and report results through CP/M. Every test must declare
+which memory, interrupt, timer, console, and network state it modifies; unsafe
+or destructive tests must be opt-in. Do not assume that a reset-time ROM test
+can run unchanged under CP/M: preserve the operating system, stack, RomBios
+interrupt dispatcher, raster/DRAM refresh, and Janet disk transport as needed.
