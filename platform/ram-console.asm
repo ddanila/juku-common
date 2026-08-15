@@ -110,13 +110,15 @@ RAMPRINTABLE:
         jc      RAMCHAROK
         mvi     e,'?'                   ; bound characters outside the font
 RAMCHAROK:
+        mov     a,e
+        sta     RAMOUTCHAR              ; RAMCELLADDR uses DE as scratch
         ; Calculate the packed framebuffer cell first. RAMCELLADDR also saves
         ; the bit shift for the five-pixel field in RAMSHIFT.
         call    RAMCELLADDR
         push    h
 
         ; Font pointer = RAMFONT + (character - 20h) * 7.
-        mov     a,e
+        lda     RAMOUTCHAR
         sui     020h
         mov     l,a
         mvi     h,0
