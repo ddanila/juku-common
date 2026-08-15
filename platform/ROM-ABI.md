@@ -12,7 +12,7 @@ copied-helper bytes. Fixed three-byte jump vectors begin at `FF20h`.
 
 ABI 1 requires:
 
-- the caller reserves `D600h..D7FFh`; the call gate starts at `D640h`, the
+- the caller reserves `D600h..D7FFh`; the call gate starts at `D620h`, the
   mode-3 helper at `D700h`, and mutable ROM state at `D780h`;
 - the stack and CP/M buffers do not overlap that range or `D800h` framebuffer;
 - the PIC is masked and interrupt-driven RomBios services are detached;
@@ -23,7 +23,8 @@ ABI 1 requires:
 
 `JCGINIT` may be called from any memory mode. It checks all eight signature
 bytes, requires the same major version and a ROM minor version no older than
-the consumer, records its result in low RAM, and returns `A=00h` or `A=FFh`.
+the consumer, calls fixed-vector `JROMINIT`, records its result in low RAM, and
+returns `A=00h` or `A=FFh`.
 Consumers reject a mismatch cleanly; they never probe incidental ROM code.
 
 Unless an entry says otherwise, AF, BC, DE, and HL may be destroyed, SP is

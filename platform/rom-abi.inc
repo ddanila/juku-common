@@ -51,6 +51,23 @@ JROMGETINFO     equ     JROMABIBASE+047h
 ; Fixed low-RAM ownership. The first implementation reserves 512 bytes.
 JROMRAMBASE     equ     0d600h
 JROMRAMEND      equ     0d800h
-JROMGATEBASE    equ     0d640h
+JROMGATEBASE    equ     0d620h
 JROMHELPBASE    equ     0d700h
 JROMSTATEBASE   equ     0d780h
+
+; Fixed low-RAM gate vectors mirror the ROM order. Consumers can include the
+; gate source or call these addresses from a separately linked BIOS.
+JCGINITADDR     equ     JROMGATEBASE+000h
+JCGCONINITADDR  equ     JROMGATEBASE+003h
+JCGCONSTATADDR  equ     JROMGATEBASE+006h
+JCGCONINADDR    equ     JROMGATEBASE+009h
+JCGCONOUTADDR   equ     JROMGATEBASE+00ch
+JCGSERINITADDR  equ     JROMGATEBASE+00fh
+JCGSERRXADDR    equ     JROMGATEBASE+012h
+JCGSERTXADDR    equ     JROMGATEBASE+015h
+JCGNETDISKADDR  equ     JROMGATEBASE+018h
+JCGKEYINITADDR  equ     JROMGATEBASE+01bh
+JCGKEYSCANADDR  equ     JROMGATEBASE+01eh
+JCGSOUNDADDR    equ     JROMGATEBASE+021h
+JCGDIAGADDR     equ     JROMGATEBASE+024h
+JCGGETINFOADDR  equ     JROMGATEBASE+027h

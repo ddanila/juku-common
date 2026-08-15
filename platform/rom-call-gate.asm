@@ -10,7 +10,23 @@
 
 JCGMODEPORT     equ     006h
 
-JCGINIT:
+; Stable low-RAM vector table. Keep this order synchronized with rom-abi.inc.
+JCGINIT:        jmp     JCGINITIMPL
+JCGCONINIT:     jmp     JCGCONINITIMPL
+JCGCONSTAT:     jmp     JCGCONSTATIMPL
+JCGCONIN:       jmp     JCGCONINIMPL
+JCGCONOUT:      jmp     JCGCONOUTIMPL
+JCGSERINIT:     jmp     JCGSERINITIMPL
+JCGSERRX:       jmp     JCGSERRXIMPL
+JCGSERTX:       jmp     JCGSERTXIMPL
+JCGNETDISK:     jmp     JCGNETDISKIMPL
+JCGKEYINIT:     jmp     JCGKEYINITIMPL
+JCGKEYSCAN:     jmp     JCGKEYSCANIMPL
+JCGSOUND:       jmp     JCGSOUNDIMPL
+JCGDIAG:        jmp     JCGDIAGIMPL
+JCGGETINFO:     jmp     JCGGETINFOIMPL
+
+JCGINITIMPL:
         di
         call    JCGMODE1
         lxi     h,JROMABIBASE
@@ -33,8 +49,10 @@ JCGSIGLOOP:
         jc      JCGFAIL
         mvi     a,1
         sta     JCGREADY
-        xra     a
-        ret
+        call    JROMINIT
+        ora     a
+        rz
+        jmp     JCGFAIL
 JCGFAIL:
         xra     a
         sta     JCGREADY
@@ -53,34 +71,33 @@ JCGMODE1:
         pop     psw
         ret
 
-JCGCONINIT:     call JCGMODE1
+JCGCONINITIMPL: call JCGMODE1
                 jmp  JROMCONINIT
-JCGCONSTAT:     call JCGMODE1
+JCGCONSTATIMPL: call JCGMODE1
                 jmp  JROMCONSTAT
-JCGCONIN:       call JCGMODE1
+JCGCONINIMPL:   call JCGMODE1
                 jmp  JROMCONIN
-JCGCONOUT:      call JCGMODE1
+JCGCONOUTIMPL:  call JCGMODE1
                 jmp  JROMCONOUT
-JCGSERINIT:     call JCGMODE1
+JCGSERINITIMPL: call JCGMODE1
                 jmp  JROMSERINIT
-JCGSERRX:       call JCGMODE1
+JCGSERRXIMPL:   call JCGMODE1
                 jmp  JROMSERRX
-JCGSERTX:       call JCGMODE1
+JCGSERTXIMPL:   call JCGMODE1
                 jmp  JROMSERTX
-JCGNETDISK:     call JCGMODE1
+JCGNETDISKIMPL: call JCGMODE1
                 jmp  JROMNETDISK
-JCGKEYINIT:     call JCGMODE1
+JCGKEYINITIMPL: call JCGMODE1
                 jmp  JROMKEYINIT
-JCGKEYSCAN:     call JCGMODE1
+JCGKEYSCANIMPL: call JCGMODE1
                 jmp  JROMKEYSCAN
-JCGSOUND:       call JCGMODE1
+JCGSOUNDIMPL:   call JCGMODE1
                 jmp  JROMSOUND
-JCGDIAG:        call JCGMODE1
+JCGDIAGIMPL:    call JCGMODE1
                 jmp  JROMDIAG
-JCGGETINFO:     call JCGMODE1
+JCGGETINFOIMPL: call JCGMODE1
                 jmp  JROMGETINFO
 
 JCGREADY:       db      0
 JCGSIGNATURE:   db      'J','U','K','U','A','B','I',0
 JCGEND:
-
