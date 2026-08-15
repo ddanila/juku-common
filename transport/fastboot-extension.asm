@@ -15,9 +15,15 @@ USARTDATA       equ     008h
 USARTCTL        equ     009h
 
 .ifdef FASTBOOT_CPM3
+.ifdef FASTBOOT_CPM3_ROM
+DESTINATION     equ     09000h
+ENTRY           equ     0bc00h
+SYSTEM_SIZE     equ     04600h
+.else
 DESTINATION     equ     07000h
 ENTRY           equ     09c00h
 SYSTEM_SIZE     equ     04000h
+.endif
 .else
 .ifdef FASTBOOT_RAMBIOS
 DESTINATION     equ     0b000h
