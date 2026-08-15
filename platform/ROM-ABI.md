@@ -70,4 +70,5 @@ advertise only implemented services.
 - Consumers test feature bits before optional calls.
 - The ABI table and low-RAM layout are checked in simulation against exact
   addresses, stack sentinels, register preservation, interrupt state, memory
-  mode, framebuffer write-through, mode-3 helper return, and serial traffic.
+  mode, rejection of writes into the ROM overlay, successful mode-3 helper
+  access, and concurrent serial traffic.
