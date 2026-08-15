@@ -3,9 +3,10 @@
 These strict-8080 modules are shared by the CP/Mish Juku port and the separate
 CP/M Plus Juku port:
 
-- `ram-console.asm`: 40x24 framebuffer console;
-- `ram-console-font.asm`: Daniel Hepper's public-domain `font8x8_basic`,
-  bit-reversed for Juku scanout;
+- `ram-console.asm`: native 80x24 framebuffer console using MODX's proved
+  50-byte stride and eight-scanline cell, with a blinking underline cursor;
+- `ram-console-font.asm`: domsson's CC0 `oldschool` 5x7 font, converted to
+  seven MSB-first Juku scanlines by `../tools/generate_ram_console_font.py`;
 - `ram-keyboard.asm`: interrupt-independent matrix keyboard driver;
 - `netdisk-v3.asm`: resilient three-record Janet read-ahead client;
 - `netconsole.asm`: optional resilient remote console.
@@ -15,5 +16,17 @@ geometry. The assembly-time `CPM3ADAPTER` selection currently preserves the
 two already-qualified workspace layouts while the CP/M Plus port replaces its
 compatibility adapter with a native CP/M 3 hardware layer.
 
-Except for the separately attributed public-domain font, these files are
-Copyright (c) 2026 Danila Sukharev and use `../LICENSE-BSD-2-Clause`.
+Except for the separately attributed CC0 font, these files are Copyright (c)
+2026 Danila Sukharev and use `../LICENSE-BSD-2-Clause`.
+
+The font source is published as CC0 by domsson at
+<https://opengameart.org/content/ascii-bitmap-font-oldschool>. Download
+`charmap-oldschool_white.png` from that page and run:
+
+```sh
+python3 tools/generate_ram_console_font.py charmap-oldschool_white.png \
+  --check platform/ram-console-font.asm
+```
+
+Regeneration is optional and requires Pillow; ordinary assembly consumes the
+checked-in generated source and adds no image-library build dependency.

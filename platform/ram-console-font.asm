@@ -1,97 +1,100 @@
-; U+0020..U+007D, bit-reversed for Juku's MSB-left scanout.
-; Daniel Hepper font8x8_basic, public domain: https://github.com/dhepper/font8x8
+; U+0020..U+007E, five MSB-first pixels by seven scanlines.
+; domsson's oldschool font, CC0-1.0:
+; https://opengameart.org/content/ascii-bitmap-font-oldschool
+; source PNG SHA-256: cf7d942a052f451a2bd24e02f193ea96433eeceeb705c8b0b2d2296f3ce57708
 RAMFONT:
-        db 000h,000h,000h,000h,000h,000h,000h,000h
-        db 018h,03ch,03ch,018h,018h,000h,018h,000h
-        db 06ch,06ch,000h,000h,000h,000h,000h,000h
-        db 06ch,06ch,0feh,06ch,0feh,06ch,06ch,000h
-        db 030h,07ch,0c0h,078h,00ch,0f8h,030h,000h
-        db 000h,0c6h,0cch,018h,030h,066h,0c6h,000h
-        db 038h,06ch,038h,076h,0dch,0cch,076h,000h
-        db 060h,060h,0c0h,000h,000h,000h,000h,000h
-        db 018h,030h,060h,060h,060h,030h,018h,000h
-        db 060h,030h,018h,018h,018h,030h,060h,000h
-        db 000h,066h,03ch,0ffh,03ch,066h,000h,000h
-        db 000h,030h,030h,0fch,030h,030h,000h,000h
-        db 000h,000h,000h,000h,000h,030h,030h,060h
-        db 000h,000h,000h,0fch,000h,000h,000h,000h
-        db 000h,000h,000h,000h,000h,030h,030h,000h
-        db 006h,00ch,018h,030h,060h,0c0h,080h,000h
-        db 07ch,0c6h,0ceh,0deh,0f6h,0e6h,07ch,000h
-        db 030h,070h,030h,030h,030h,030h,0fch,000h
-        db 078h,0cch,00ch,038h,060h,0cch,0fch,000h
-        db 078h,0cch,00ch,038h,00ch,0cch,078h,000h
-        db 01ch,03ch,06ch,0cch,0feh,00ch,01eh,000h
-        db 0fch,0c0h,0f8h,00ch,00ch,0cch,078h,000h
-        db 038h,060h,0c0h,0f8h,0cch,0cch,078h,000h
-        db 0fch,0cch,00ch,018h,030h,030h,030h,000h
-        db 078h,0cch,0cch,078h,0cch,0cch,078h,000h
-        db 078h,0cch,0cch,07ch,00ch,018h,070h,000h
-        db 000h,030h,030h,000h,000h,030h,030h,000h
-        db 000h,030h,030h,000h,000h,030h,030h,060h
-        db 018h,030h,060h,0c0h,060h,030h,018h,000h
-        db 000h,000h,0fch,000h,000h,0fch,000h,000h
-        db 060h,030h,018h,00ch,018h,030h,060h,000h
-        db 078h,0cch,00ch,018h,030h,000h,030h,000h
-        db 07ch,0c6h,0deh,0deh,0deh,0c0h,078h,000h
-        db 030h,078h,0cch,0cch,0fch,0cch,0cch,000h
-        db 0fch,066h,066h,07ch,066h,066h,0fch,000h
-        db 03ch,066h,0c0h,0c0h,0c0h,066h,03ch,000h
-        db 0f8h,06ch,066h,066h,066h,06ch,0f8h,000h
-        db 0feh,062h,068h,078h,068h,062h,0feh,000h
-        db 0feh,062h,068h,078h,068h,060h,0f0h,000h
-        db 03ch,066h,0c0h,0c0h,0ceh,066h,03eh,000h
-        db 0cch,0cch,0cch,0fch,0cch,0cch,0cch,000h
-        db 078h,030h,030h,030h,030h,030h,078h,000h
-        db 01eh,00ch,00ch,00ch,0cch,0cch,078h,000h
-        db 0e6h,066h,06ch,078h,06ch,066h,0e6h,000h
-        db 0f0h,060h,060h,060h,062h,066h,0feh,000h
-        db 0c6h,0eeh,0feh,0feh,0d6h,0c6h,0c6h,000h
-        db 0c6h,0e6h,0f6h,0deh,0ceh,0c6h,0c6h,000h
-        db 038h,06ch,0c6h,0c6h,0c6h,06ch,038h,000h
-        db 0fch,066h,066h,07ch,060h,060h,0f0h,000h
-        db 078h,0cch,0cch,0cch,0dch,078h,01ch,000h
-        db 0fch,066h,066h,07ch,06ch,066h,0e6h,000h
-        db 078h,0cch,0e0h,070h,01ch,0cch,078h,000h
-        db 0fch,0b4h,030h,030h,030h,030h,078h,000h
-        db 0cch,0cch,0cch,0cch,0cch,0cch,0fch,000h
-        db 0cch,0cch,0cch,0cch,0cch,078h,030h,000h
-        db 0c6h,0c6h,0c6h,0d6h,0feh,0eeh,0c6h,000h
-        db 0c6h,0c6h,06ch,038h,038h,06ch,0c6h,000h
-        db 0cch,0cch,0cch,078h,030h,030h,078h,000h
-        db 0feh,0c6h,08ch,018h,032h,066h,0feh,000h
-        db 078h,060h,060h,060h,060h,060h,078h,000h
-        db 0c0h,060h,030h,018h,00ch,006h,002h,000h
-        db 078h,018h,018h,018h,018h,018h,078h,000h
-        db 010h,038h,06ch,0c6h,000h,000h,000h,000h
-        db 000h,000h,000h,000h,000h,000h,000h,0ffh
-        db 030h,030h,018h,000h,000h,000h,000h,000h
-        db 000h,000h,078h,00ch,07ch,0cch,076h,000h
-        db 0e0h,060h,060h,07ch,066h,066h,0dch,000h
-        db 000h,000h,078h,0cch,0c0h,0cch,078h,000h
-        db 01ch,00ch,00ch,07ch,0cch,0cch,076h,000h
-        db 000h,000h,078h,0cch,0fch,0c0h,078h,000h
-        db 038h,06ch,060h,0f0h,060h,060h,0f0h,000h
-        db 000h,000h,076h,0cch,0cch,07ch,00ch,0f8h
-        db 0e0h,060h,06ch,076h,066h,066h,0e6h,000h
-        db 030h,000h,070h,030h,030h,030h,078h,000h
-        db 00ch,000h,00ch,00ch,00ch,0cch,0cch,078h
-        db 0e0h,060h,066h,06ch,078h,06ch,0e6h,000h
-        db 070h,030h,030h,030h,030h,030h,078h,000h
-        db 000h,000h,0cch,0feh,0feh,0d6h,0c6h,000h
-        db 000h,000h,0f8h,0cch,0cch,0cch,0cch,000h
-        db 000h,000h,078h,0cch,0cch,0cch,078h,000h
-        db 000h,000h,0dch,066h,066h,07ch,060h,0f0h
-        db 000h,000h,076h,0cch,0cch,07ch,00ch,01eh
-        db 000h,000h,0dch,076h,066h,060h,0f0h,000h
-        db 000h,000h,07ch,0c0h,078h,00ch,0f8h,000h
-        db 010h,030h,07ch,030h,030h,034h,018h,000h
-        db 000h,000h,0cch,0cch,0cch,0cch,076h,000h
-        db 000h,000h,0cch,0cch,0cch,078h,030h,000h
-        db 000h,000h,0c6h,0d6h,0feh,0feh,06ch,000h
-        db 000h,000h,0c6h,06ch,038h,06ch,0c6h,000h
-        db 000h,000h,0cch,0cch,0cch,07ch,00ch,0f8h
-        db 000h,000h,0fch,098h,030h,064h,0fch,000h
-        db 01ch,030h,030h,0e0h,030h,030h,01ch,000h
-        db 018h,018h,018h,000h,018h,018h,018h,000h
-        db 0e0h,030h,030h,01ch,030h,030h,0e0h,000h
+        db      000h,000h,000h,000h,000h,000h,000h ; 20 space
+        db      020h,020h,020h,020h,020h,000h,020h ; 21 !
+        db      050h,050h,000h,000h,000h,000h,000h ; 22 "
+        db      050h,050h,0f8h,050h,0f8h,050h,050h ; 23 #
+        db      020h,078h,0a0h,070h,028h,0f0h,020h ; 24 $
+        db      0c0h,0c8h,010h,020h,040h,098h,018h ; 25 %
+        db      070h,090h,0a0h,040h,0a8h,090h,068h ; 26 &
+        db      020h,020h,000h,000h,000h,000h,000h ; 27 apostrophe
+        db      010h,020h,040h,040h,040h,020h,010h ; 28 (
+        db      040h,020h,010h,010h,010h,020h,040h ; 29 )
+        db      000h,0a8h,070h,0f8h,070h,0a8h,000h ; 2A *
+        db      000h,020h,020h,0f8h,020h,020h,000h ; 2B +
+        db      000h,000h,000h,000h,020h,020h,040h ; 2C ,
+        db      000h,000h,000h,0f8h,000h,000h,000h ; 2D -
+        db      000h,000h,000h,000h,000h,000h,020h ; 2E .
+        db      000h,008h,010h,020h,040h,080h,000h ; 2F /
+        db      070h,088h,098h,0a8h,0c8h,088h,070h ; 30 0
+        db      020h,060h,0a0h,020h,020h,020h,0f8h ; 31 1
+        db      000h,070h,088h,008h,010h,020h,040h ; 32 2
+        db      000h,070h,088h,008h,030h,008h,088h ; 33 3
+        db      000h,030h,050h,090h,0f8h,010h,010h ; 34 4
+        db      000h,0f8h,080h,080h,0f0h,008h,008h ; 35 5
+        db      000h,070h,080h,080h,0f0h,088h,088h ; 36 6
+        db      000h,0f8h,008h,010h,020h,040h,040h ; 37 7
+        db      000h,070h,088h,088h,070h,088h,088h ; 38 8
+        db      000h,070h,088h,088h,078h,008h,008h ; 39 9
+        db      000h,000h,020h,000h,000h,000h,020h ; 3A :
+        db      000h,000h,020h,000h,000h,020h,020h ; 3B ;
+        db      000h,000h,010h,020h,040h,020h,010h ; 3C <
+        db      000h,000h,000h,0f8h,000h,0f8h,000h ; 3D =
+        db      000h,000h,040h,020h,010h,020h,040h ; 3E >
+        db      000h,070h,088h,088h,010h,020h,000h ; 3F ?
+        db      000h,070h,088h,0b8h,0a8h,0b8h,080h ; 40 @
+        db      000h,070h,088h,088h,0f8h,088h,088h ; 41 A
+        db      000h,0f0h,088h,088h,0f0h,088h,088h ; 42 B
+        db      000h,070h,088h,080h,080h,080h,088h ; 43 C
+        db      000h,000h,0f0h,088h,088h,088h,088h ; 44 D
+        db      000h,000h,0f8h,080h,080h,0f0h,080h ; 45 E
+        db      000h,000h,0f8h,080h,080h,0f0h,080h ; 46 F
+        db      000h,000h,070h,088h,080h,080h,098h ; 47 G
+        db      000h,000h,088h,088h,088h,0f8h,088h ; 48 H
+        db      000h,000h,0f8h,020h,020h,020h,020h ; 49 I
+        db      000h,000h,0f8h,008h,008h,008h,008h ; 4A J
+        db      000h,000h,088h,088h,090h,0e0h,090h ; 4B K
+        db      000h,000h,080h,080h,080h,080h,080h ; 4C L
+        db      000h,000h,088h,0d8h,0a8h,088h,088h ; 4D M
+        db      000h,000h,088h,088h,0c8h,0a8h,098h ; 4E N
+        db      000h,000h,070h,088h,088h,088h,088h ; 4F O
+        db      000h,000h,0f0h,088h,088h,0f0h,080h ; 50 P
+        db      000h,000h,070h,088h,088h,088h,0a8h ; 51 Q
+        db      000h,000h,0f0h,088h,088h,0f0h,088h ; 52 R
+        db      000h,000h,078h,080h,080h,070h,008h ; 53 S
+        db      000h,000h,0f8h,020h,020h,020h,020h ; 54 T
+        db      000h,000h,088h,088h,088h,088h,088h ; 55 U
+        db      0f0h,000h,000h,088h,088h,088h,088h ; 56 V
+        db      0f8h,000h,000h,088h,088h,088h,088h ; 57 W
+        db      080h,000h,000h,088h,088h,050h,020h ; 58 X
+        db      070h,000h,000h,088h,088h,050h,020h ; 59 Y
+        db      088h,000h,000h,0f8h,008h,010h,020h ; 5A Z
+        db      0f8h,000h,000h,030h,020h,020h,020h ; 5B [
+        db      070h,000h,000h,000h,080h,040h,020h ; 5C backslash
+        db      088h,000h,000h,060h,020h,020h,020h ; 5D ]
+        db      0f8h,000h,000h,020h,050h,000h,000h ; 5E ^
+        db      088h,000h,000h,000h,000h,000h,000h ; 5F _
+        db      088h,000h,000h,040h,020h,000h,000h ; 60 `
+        db      070h,000h,000h,000h,000h,070h,008h ; 61 a
+        db      080h,000h,000h,080h,080h,0f0h,088h ; 62 b
+        db      068h,000h,000h,000h,000h,070h,088h ; 63 c
+        db      088h,000h,000h,008h,008h,078h,088h ; 64 d
+        db      0f0h,000h,000h,000h,000h,070h,088h ; 65 e
+        db      020h,000h,000h,030h,040h,0f8h,040h ; 66 f
+        db      070h,000h,000h,000h,000h,078h,088h ; 67 g
+        db      050h,020h,000h,000h,080h,080h,0f0h ; 68 h
+        db      0d8h,088h,000h,000h,020h,000h,0e0h ; 69 i
+        db      088h,088h,000h,000h,008h,000h,038h ; 6A j
+        db      020h,020h,000h,000h,080h,080h,090h ; 6B k
+        db      080h,0f8h,000h,000h,080h,080h,080h ; 6C l
+        db      020h,030h,000h,000h,000h,000h,0d0h ; 6D m
+        db      008h,000h,000h,000h,000h,000h,0f0h ; 6E n
+        db      020h,060h,000h,000h,000h,000h,070h ; 6F o
+        db      000h,000h,000h,000h,000h,000h,0f0h ; 70 p
+        db      000h,0f8h,000h,000h,000h,000h,078h ; 71 q
+        db      000h,000h,000h,000h,000h,000h,0b0h ; 72 r
+        db      088h,078h,000h,000h,000h,000h,078h ; 73 s
+        db      088h,0f0h,000h,000h,040h,040h,0f0h ; 74 t
+        db      088h,070h,000h,000h,000h,000h,088h ; 75 u
+        db      088h,078h,000h,000h,000h,000h,088h ; 76 v
+        db      080h,078h,000h,000h,000h,000h,088h ; 77 w
+        db      040h,040h,000h,000h,000h,000h,088h ; 78 x
+        db      008h,070h,000h,000h,000h,000h,088h ; 79 y
+        db      088h,088h,088h,000h,000h,000h,000h ; 7A z
+        db      020h,020h,0f8h,000h,000h,010h,020h ; 7B {
+        db      008h,088h,070h,000h,000h,020h,020h ; 7C |
+        db      090h,088h,088h,000h,000h,040h,020h ; 7D }
+        db      080h,080h,070h,000h,000h,000h,000h ; 7E ~
