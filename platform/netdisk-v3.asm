@@ -6,14 +6,22 @@
 ; record, and CRC-16/IBM over the complete DJ body. Consumers select one of
 ; the qualified workspace layouts at assembly time.
 
+.ifndef ROMNETDISK
         cseg
         public  N3READ
         public  N3INV
         public  N3ENA
         extrn   NRWDISK
+.endif
 
 USARTDATA      equ     008h
 USARTCTL       equ     009h
+.ifdef ROMNETDISK
+SEKDSK         equ     ROMNETSTATEBASE
+SEKTRK         equ     ROMNETSTATEBASE+1
+SEKSEC         equ     ROMNETSTATEBASE+3
+MEMADR         equ     ROMNETSTATEBASE+4
+.else
 .ifdef CPM3ADAPTER
 SEKDSK         equ     0b11ah
 SEKTRK         equ     0b11bh
@@ -25,14 +33,17 @@ SEKTRK         equ     0d61bh
 SEKSEC         equ     0d61dh
 MEMADR         equ     0d62eh
 .endif
+.endif
 DKRD           equ     011h
 DKRC           equ     013h
 DKRA           equ     014h
 
+.ifndef ROMNETDISK
 .ifdef CPM3ADAPTER
 CACHE          equ     0b280h
 .else
 CACHE          equ     0d080h
+.endif
 .endif
 SLOTSIZE       equ     131
 
@@ -47,9 +58,13 @@ N3READ:
         jz      N3LOOK
         cpi     2
         mvi     a,DKRC
+.ifdef ROMNETDISK
+        jmp     N3ERROR
+.else
         jz      NRWDISK
         mvi     a,DKRD
         jmp     NRWDISK
+.endif
 
 ; Search all cached track/sector keys before asking the host again.
 N3LOOK: lda     N3COUNT
@@ -61,7 +76,11 @@ N3LOOK: lda     N3COUNT
         lda     SEKDSK
         cmp     c
         jnz     N3MISS
+.ifdef ROMNETDISK
+        lhld    N3CACHE
+.else
         lxi     h,CACHE
+.endif
 N3LK1: lda     SEKTRK
         cmp     m
         jnz     N3NEXT
@@ -161,7 +180,11 @@ N3SYNC:call    N3RX
         jnc     N3BAD
         sta     N3COUNT
         mov     c,a
+.ifdef ROMNETDISK
+        lhld    N3CACHE
+.else
         lxi     h,CACHE
+.endif
 N3REC: call    N3RXC
         jc      N3BAD
         mov     m,a
@@ -243,7 +266,11 @@ N3END: call    N3RX
         jnz     N3ERROR
         lda     SEKDSK
         sta     N3DRIVE
+.ifdef ROMNETDISK
+        lhld    N3CACHE
+.else
         lxi     h,CACHE
+.endif
 N3COPY:inx     h
         inx     h
         inx     h
@@ -334,6 +361,17 @@ N3CNC: mov     h,a
         pop     h
         ret
 
+.ifdef ROMNETDISK
+N3MODE         equ     ROMNETSTATEBASE+6
+N3SEQ          equ     ROMNETSTATEBASE+7
+N3COUNT        equ     ROMNETSTATEBASE+8
+N3DRIVE        equ     ROMNETSTATEBASE+9
+N3STATUS       equ     ROMNETSTATEBASE+10
+N3PREFIX       equ     ROMNETSTATEBASE+11
+N3TRIES        equ     ROMNETSTATEBASE+12
+N3CACHE        equ     ROMNETSTATEBASE+13
+ROMNETEND:
+.else
 N3MODE: db      1
 N3SEQ:  db      0
 N3COUNT:db      0
@@ -342,3 +380,4 @@ N3STATUS:db     0
 N3PREFIX:db     0
 N3TRIES:db      0
         end
+.endif

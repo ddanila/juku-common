@@ -48,6 +48,19 @@ JROMSOUND       equ     JROMABIBASE+041h
 JROMDIAG        equ     JROMABIBASE+044h
 JROMGETINFO     equ     JROMABIBASE+047h
 
+; JCGNETDISK request v1 (10 bytes at caller-owned low RAM).
+JROMNETREQBYTES equ     10
+JROMNETREQVER   equ     0
+JROMNETREQOP    equ     1
+JROMNETREQDRIVE equ     2
+JROMNETREQTRACK equ     3
+JROMNETREQSECTOR equ    5
+JROMNETREQDMA   equ     6
+JROMNETREQCACHE equ     8
+JROMNETOPREAD   equ     0
+JROMNETOPINVALIDATE equ 1
+JROMNETOPMODE   equ     2
+
 ; Fixed low-RAM ownership. The first implementation reserves 512 bytes.
 JROMRAMBASE     equ     0d600h
 JROMRAMEND      equ     0d800h

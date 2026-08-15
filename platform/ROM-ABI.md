@@ -50,6 +50,13 @@ forever.
 | `JCGDIAG` / `FF44h` | A selects a documented mechanism, HL points to its argument/result block; A is the structured result. Destructive tests are never implicit. |
 | `JCGGETINFO` / `FF47h` | Returns HL=manifest address and DE=feature bits; no other state changes. |
 
+NetDisk request version 1 is a 10-byte caller-owned block: version, operation,
+drive, little-endian track, sector, little-endian 128-byte DMA pointer, and
+little-endian three-slot cache pointer. Operation 0 reads one record through
+the v3 read-ahead cache, operation 1 invalidates it, and operation 2 selects the
+mode in the drive byte (production uses 3). A read returns A=0 or A=1 after its
+bounded three-attempt recovery; malformed requests return FFh with carry set.
+
 `FF20h` is `JROMINIT`, used by the boot path after installing the gate and
 helper. It validates workspace/helper sizes, initializes fixed state, and
 returns `A=0`; operating-system consumers normally inherit this initialized
