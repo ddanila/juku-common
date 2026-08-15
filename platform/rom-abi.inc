@@ -60,6 +60,7 @@ JROMNETREQCACHE equ     8
 JROMNETOPREAD   equ     0
 JROMNETOPINVALIDATE equ 1
 JROMNETOPMODE   equ     2
+JROMNETOPWRITE  equ     3
 
 ; Fixed low-RAM ownership. The first implementation reserves 512 bytes.
 JROMRAMBASE     equ     0d600h

@@ -35,8 +35,10 @@ MEMADR         equ     0d62eh
 .endif
 .endif
 DKRD           equ     011h
+DKWR           equ     012h
 DKRC           equ     013h
 DKRA           equ     014h
+DKWA           equ     015h
 
 .ifndef ROMNETDISK
 .ifdef CPM3ADAPTER
@@ -102,6 +104,9 @@ N3NEXT:lxi     d,SLOTSIZE
         jnz     N3LK1
 
 N3MISS:
+        mvi     a,DKRA
+        sta     N3OP
+N3START:
         lda     N3SEQ
         inr     a
         sta     N3SEQ
@@ -115,7 +120,7 @@ N3RETRY:
         call    N3SEND
         mvi     a,'D'
         call    N3SEND
-        mvi     a,DKRA
+        lda     N3OP
         call    N3SEND
         lda     N3SEQ
         call    N3SEND
@@ -127,28 +132,21 @@ N3RETRY:
         call    N3SEND
         lda     SEKSEC
         call    N3SEND
+        lda     N3OP
+        cpi     DKWA
+        jnz     N3HEADER
+        lhld    MEMADR
+        mvi     d,128
+N3WBYTE:
+        mov     a,m
+        call    N3SEND
+        inx     h
+        dcr     d
+        jnz     N3WBYTE
+N3HEADER:
         mov     a,b
         call    N3TX
-        ; The legacy value is retained only so the paced cosim can prove that
-        ; the physical CS00015 failure was reproduced before accepting a fix.
-.ifdef NETDISK_V3_LEGACY_DRAIN
-        lxi     b,400
-.else
-        ; TxRDY only says that the holding register is free. At the final OUT,
-        ; one byte may still be shifting and the checksum may be waiting behind
-        ; it, so cover two complete 8O1 characters before releasing TxEN.
-        ; 128 * 24 cycles is about 1.8 ms at CS00015's measured 1.70 MHz,
-        ; comfortably above the 1.15 ms wire bound without delaying receive
-        ; past the host's 2 ms reply guard.
-        lxi     b,128
-.endif
-N3DRAIN:
-        dcx     b
-        mov     a,b
-        ora     c
-        jnz     N3DRAIN
-        mvi     a,034h
-        out     USARTCTL
+        call    N3TURN
 
 N3SYNC:call    N3RX
         jc      N3BAD
@@ -264,6 +262,9 @@ N3END: call    N3RX
         lda     N3STATUS
         ora     a
         jnz     N3ERROR
+        lda     N3OP
+        cpi     DKWA
+        jz      N3DONE
         lda     SEKDSK
         sta     N3DRIVE
 .ifdef ROMNETDISK
@@ -284,6 +285,7 @@ N3CP1: mov     a,m
         inx     d
         dcr     b
         jnz     N3CP1
+N3DONE:
         xra     a
         ret
 N3ERROR:
@@ -297,6 +299,16 @@ N3BAD: lda     N3TRIES
         jnz     N3RETRY
         jmp     N3ERROR
 
+.ifdef ROMNETDISK
+; V3 synchronous write-through reuses the CRC reply and retry state machine.
+; Invalidate first so an uncertain result can never expose stale cached data.
+N3WRITE:
+        call    N3INV
+        mvi     a,DKWA
+        sta     N3OP
+        jmp     N3START
+.endif
+
 N3SEND:mov     c,a
         xra     b
         mov     b,a
@@ -307,6 +319,24 @@ N3TX1: in      USARTCTL
         jz      N3TX1
         mov     a,c
         out     USARTDATA
+        ret
+
+; TxRDY says only that the holding register is free. The checksum can still be
+; behind one byte in the shifter, so cover two 8O1 characters before releasing
+; TxEN. The legacy delay remains selectable for the physical-failure fixture.
+N3TURN:
+.ifdef NETDISK_V3_LEGACY_DRAIN
+        lxi     b,400
+.else
+        lxi     b,128
+.endif
+N3TURN1:
+        dcx     b
+        mov     a,b
+        ora     c
+        jnz     N3TURN1
+        mvi     a,034h
+        out     USARTCTL
         ret
 N3RX:  push    b
         lxi     b,0            ; 65536 status polls, about one second
@@ -370,6 +400,7 @@ N3STATUS       equ     ROMNETSTATEBASE+10
 N3PREFIX       equ     ROMNETSTATEBASE+11
 N3TRIES        equ     ROMNETSTATEBASE+12
 N3CACHE        equ     ROMNETSTATEBASE+13
+N3OP           equ     ROMNETSTATEBASE+15
 ROMNETEND:
 .else
 N3MODE: db      1
@@ -379,5 +410,6 @@ N3DRIVE:db      0
 N3STATUS:db     0
 N3PREFIX:db     0
 N3TRIES:db      0
+N3OP:   db      0
         end
 .endif

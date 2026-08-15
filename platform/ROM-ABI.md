@@ -53,19 +53,20 @@ forever.
 NetDisk request version 1 is a 10-byte caller-owned block: version, operation,
 drive, little-endian track, sector, little-endian 128-byte DMA pointer, and
 little-endian three-slot cache pointer. Operation 0 reads one record through
-the v3 read-ahead cache, operation 1 invalidates it, and operation 2 selects the
-mode in the drive byte (production uses 3). A read returns A=0 or A=1 after its
-bounded three-attempt recovery; malformed requests return FFh with carry set.
+the v3 read-ahead cache, operation 1 invalidates it, operation 2 selects the
+mode in the drive byte (production uses 3), and operation 3 synchronously
+writes one 128-byte DMA record. Write invalidates read-ahead before its first
+attempt and never leaves cached data valid after an uncertain result. Reads and
+writes return A=0 or A=1 after bounded three-attempt recovery; malformed
+requests return FFh with carry set.
 
 `FF20h` is `JROMINIT`, used by the boot path after installing the gate and
 helper. It validates workspace/helper sizes, initializes fixed state, and
 returns `A=0`; operating-system consumers normally inherit this initialized
 state but may call it again during a controlled cold start.
 
-The initial NetDisk request block is deliberately defined with policy in the
-consumer adapter until the shared serial extraction is complete. ABI 1.0 may
-implement `JROMNETDISK` as unavailable (`A=FFh`) during the skeleton phase, but
-the fixed address and eventual timeout/state rules may not change. Feature bits
+The request block retains CP/M policy in the consumer while resident ROM owns
+framing, retry, cache coherence, and the shared serial path. Feature bits
 advertise only implemented services.
 
 ## Compatibility rules
