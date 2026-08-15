@@ -110,7 +110,19 @@ N3RETRY:
         call    N3SEND
         mov     a,b
         call    N3TX
+        ; The legacy value is retained only so the paced cosim can prove that
+        ; the physical CS00015 failure was reproduced before accepting a fix.
+.ifdef NETDISK_V3_LEGACY_DRAIN
         lxi     b,400
+.else
+        ; TxRDY only says that the holding register is free. At the final OUT,
+        ; one byte may still be shifting and the checksum may be waiting behind
+        ; it, so cover two complete 8O1 characters before releasing TxEN.
+        ; 128 * 24 cycles is about 1.8 ms at CS00015's measured 1.70 MHz,
+        ; comfortably above the 1.15 ms wire bound without delaying receive
+        ; past the host's 2 ms reply guard.
+        lxi     b,128
+.endif
 N3DRAIN:
         dcx     b
         mov     a,b
@@ -194,7 +206,6 @@ N3PREEND:
         lda     N3PREFIX
         cma
         adi     129
-        sta     N3LEFT
         jmp     N3FIL1
 
 N3RAW: mvi     b,128
@@ -212,12 +223,9 @@ N3FILLRX:
 N3E5:  mvi     a,0e5h
 N3FILL:mov     b,a
         mvi     a,128
-        sta     N3LEFT
 N3FIL1:mov     m,b
         inx     h
-        lda     N3LEFT
         dcr     a
-        sta     N3LEFT
         jnz     N3FIL1
 N3RDN: dcr     c
         jnz     N3REC
@@ -331,7 +339,6 @@ N3SEQ:  db      0
 N3COUNT:db      0
 N3DRIVE:db      0
 N3STATUS:db     0
-N3LEFT: db      0
 N3PREFIX:db     0
 N3TRIES:db      0
         end
