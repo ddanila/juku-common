@@ -16,6 +16,8 @@ CP/M Plus Juku port:
   low-RAM ownership constants;
 - `rom-call-gate.asm`: signature/version-checking low-RAM dispatcher for the
   fixed `FF20h+` service vectors.
+- `rom-console-state.inc` and `rom-console-helper.asm`: fixed console workspace
+  plus the copied clear/scroll/packed-row primitive that alone enters mode 3;
 
 Consumers own their BIOS vectors, memory map, initialization policy, and disk
 geometry. The assembly-time `CPM3ADAPTER` selection currently preserves the
