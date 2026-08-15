@@ -9,7 +9,11 @@ CP/M Plus Juku port:
   seven MSB-first Juku scanlines by `../tools/generate_ram_console_font.py`;
 - `ram-keyboard.asm`: interrupt-independent matrix keyboard driver;
 - `netdisk-v3.asm`: resilient three-record Janet read-ahead client;
-- `netconsole.asm`: optional resilient remote console.
+- `netconsole.asm`: optional resilient remote console;
+- `rom-abi.inc`: fixed network-first ROM manifest, feature, vector, and
+  low-RAM ownership constants;
+- `rom-call-gate.asm`: signature/version-checking low-RAM dispatcher for the
+  fixed `FF20h+` service vectors.
 
 Consumers own their BIOS vectors, memory map, initialization policy, and disk
 geometry. The assembly-time `CPM3ADAPTER` selection currently preserves the
@@ -30,3 +34,8 @@ python3 tools/generate_ram_console_font.py charmap-oldschool_white.png \
 
 Regeneration is optional and requires Pillow; ordinary assembly consumes the
 checked-in generated source and adds no image-library build dependency.
+
+Network-first ROM consumers call `JCGINIT` successfully before using another
+gate entry. The gate selects memory mode 1 without clobbering the caller's
+accumulator or flags; the first ABI keeps interrupts disabled while the ROM
+owns the polled platform.
