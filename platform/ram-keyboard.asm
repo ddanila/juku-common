@@ -6,10 +6,12 @@
 ; 74148 row code plus the dedicated active-low SHIFT and CTRL contacts. This
 ; implementation deliberately needs no RomBios state and no frame interrupt.
 
+.ifndef ROMKEYBOARD
         cseg
         public  RKINIT
         public  RKSTAT
         public  RKIN
+.endif
 
 KEYCOLPORT      equ     004h
 KEYROWPORT      equ     005h
@@ -182,8 +184,17 @@ RAMKEYSHIFTS:
         db      '.','>',',','<','/','?',';','+','-','='
         db      ':','*',05ch,'^',0
 
+.ifdef ROMKEYBOARD
+; A resident-ROM wrapper supplies three bytes of mutable low-RAM state. The
+; code and immutable translation tables can then be included verbatim in ROM.
+RAMKEYDOWN     equ     ROMKEYSTATEBASE
+RAMKEYREADY    equ     ROMKEYSTATEBASE+1
+RAMKEYCHAR     equ     ROMKEYSTATEBASE+2
+ROMKEYEND:
+.else
 RAMKEYDOWN:     db      0
 RAMKEYREADY:    db      0
 RAMKEYCHAR:     db      0
 
         end
+.endif

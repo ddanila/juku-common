@@ -45,7 +45,7 @@ forever.
 | `JCGSERTX` / `FF35h` | A=data and BC is a nonzero poll bound; CY clear on accepted byte, set on timeout/error. |
 | `JCGNETDISK` / `FF38h` | HL points to the versioned low-RAM request block; returns A=0 success or a nonzero status and invalidates partial cache state on error. |
 | `JCGKEYINIT` / `FF3Bh` | Reset matrix/debounce state; A=0 success. |
-| `JCGKEYSCAN` / `FF3Eh` | Nonblocking raw/translated scan used by console policy; A=0 means none. |
+| `JCGKEYSCAN` / `FF3Eh` | Nonblocking translated event scan used by console policy; returns and consumes one debounced key event, or A=0 when none. A physical key must be released before another event is accepted. |
 | `JCGSOUND` / `FF41h` | A selects a built-in bounded cue; A=0 is silence, A=1 the diagnostic phrase. |
 | `JCGDIAG` / `FF44h` | A selects a documented mechanism, HL points to its argument/result block; A is the structured result. Destructive tests are never implicit. |
 | `JCGGETINFO` / `FF47h` | Returns HL=manifest address and DE=feature bits; no other state changes. |

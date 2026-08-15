@@ -7,7 +7,9 @@ CP/M Plus Juku port:
   50-byte stride and eight-scanline cell, with a blinking underline cursor;
 - `ram-console-font.asm`: domsson's CC0 `oldschool` 5x7 font, converted to
   seven MSB-first Juku scanlines by `../tools/generate_ram_console_font.py`;
-- `ram-keyboard.asm`: interrupt-independent matrix keyboard driver;
+- `ram-keyboard.asm`: interrupt-independent matrix keyboard driver; defining
+  `ROMKEYBOARD` plus `ROMKEYSTATEBASE` reuses the same code/tables in resident
+  ROM while keeping its three mutable bytes in low RAM;
 - `netdisk-v3.asm`: resilient three-record Janet read-ahead client;
 - `netconsole.asm`: optional resilient remote console;
 - `rom-abi.inc`: fixed network-first ROM manifest, feature, vector, and
@@ -39,3 +41,8 @@ Network-first ROM consumers call `JCGINIT` successfully before using another
 gate entry. The gate selects memory mode 1 without clobbering the caller's
 accumulator or flags; the first ABI keeps interrupts disabled while the ROM
 owns the polled platform.
+
+A transitional RAM framebuffer console that runs beside resident ROM defines
+`RAMCONSOLE_MODE1`. Its bounded mode-3 pixel operations then restore mode 1 so
+the next resident service remains callable. A fully RAM-owned BIOS omits it
+and retains mode 3.

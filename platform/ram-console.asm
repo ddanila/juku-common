@@ -385,11 +385,18 @@ RAMVIDEO:
         ret
 
 RAMNORMAL:
+.ifdef RAMCONSOLE_MODE1
+        in      MODEPORT
+        ani     0fch
+        ori     1
+        out     MODEPORT
+.else
 .ifndef RAMKEYBOARD
         in      MODEPORT
         ani     0fch
         ori     1
         out     MODEPORT
+.endif
 .endif
         ei
         ret
