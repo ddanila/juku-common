@@ -33,6 +33,26 @@ routine performs no static writes and is suitable for ROM or RAM callers, but
 requires a writable stack with room for three extra words. BC, DE, HL, A, and
 flags are destroyed.
 
+`memory-address.asm` provides a complementary non-destructive address-alias
+test. `HL` is an aligned base byte and `A` is the number of address bits
+(1..15); the routine compares the base with every `base+(1<<n)` location,
+restores every byte, and returns zero or one in `A`. The complete tested span
+must be writable and must not contain live code or stack. It destroys BC, DE,
+HL, A and flags and needs five extra stack words.
+
+`memory-retention.asm` provides a non-destructive single-cell hold test. `HL`
+selects the writable byte and nonzero `BC` selects the delay-loop count. It
+holds `00h` and `FFh`, returns the accumulated data-bit mismatch mask in `A`,
+and restores the byte, HL and BC. The caller owns the clock/refresh policy and
+must ensure that its code and stack survive the hold; the common routine does
+not disable refresh.
+
+`checksum.asm` provides `diag_checksum8`. `HL` and `DE` delimit a half-open
+range and `A` receives its eight-bit additive checksum. DE and the checked
+bytes are preserved; A, C, HL and flags are destroyed. A ROM front end can
+compare this result with a stored checksum, while a RAM program can use the
+same primitive without embedding ROM layout policy in the common source.
+
 ## Future shared diagnostic suite
 
 Keep `diag_memory_test` and the current no-argument CP/M `DIAG.COM` wrapper as
@@ -41,8 +61,9 @@ cores proven by the Jukuravi diagnostic ROMs into this directory and expose
 them through thin environment-specific front ends:
 
 - ~~8080 instruction/flag and register-path tests;~~
-- ROM integrity and RAM data/address/retention tests, including per-bit failure
-  masks suitable for identifying D84..D91;
+- ~~ROM integrity mechanism and RAM data/address/retention mechanisms,
+  including per-bit data/retention failure masks suitable for identifying
+  D84..D91;~~
 - PIC, PPI, PIT/D54-D55-D57, and local 8251 tests;
 - framebuffer/video-path and clock/timing probes where they are safe under a
   running system.
