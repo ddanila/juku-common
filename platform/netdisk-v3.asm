@@ -104,9 +104,11 @@ N3NEXT:lxi     d,SLOTSIZE
         jnz     N3LK1
 
 N3MISS:
+.ifdef ROMNETDISK
         mvi     a,DKRA
         sta     N3OP
 N3START:
+.endif
         lda     N3SEQ
         inr     a
         sta     N3SEQ
@@ -120,7 +122,11 @@ N3RETRY:
         call    N3SEND
         mvi     a,'D'
         call    N3SEND
+.ifdef ROMNETDISK
         lda     N3OP
+.else
+        mvi     a,DKRA
+.endif
         call    N3SEND
         lda     N3SEQ
         call    N3SEND
@@ -132,6 +138,7 @@ N3RETRY:
         call    N3SEND
         lda     SEKSEC
         call    N3SEND
+.ifdef ROMNETDISK
         lda     N3OP
         cpi     DKWA
         jnz     N3HEADER
@@ -144,9 +151,27 @@ N3WBYTE:
         dcr     d
         jnz     N3WBYTE
 N3HEADER:
+.endif
         mov     a,b
         call    N3TX
+.ifdef ROMNETDISK
         call    N3TURN
+.else
+        ; The legacy value is retained only so paced cosim can reproduce the
+        ; physical CS00015 failure before accepting the turnaround fix.
+.ifdef NETDISK_V3_LEGACY_DRAIN
+        lxi     b,400
+.else
+        lxi     b,128
+.endif
+N3DRAIN:
+        dcx     b
+        mov     a,b
+        ora     c
+        jnz     N3DRAIN
+        mvi     a,034h
+        out     USARTCTL
+.endif
 
 N3SYNC:call    N3RX
         jc      N3BAD
@@ -262,9 +287,11 @@ N3END: call    N3RX
         lda     N3STATUS
         ora     a
         jnz     N3ERROR
+.ifdef ROMNETDISK
         lda     N3OP
         cpi     DKWA
         jz      N3DONE
+.endif
         lda     SEKDSK
         sta     N3DRIVE
 .ifdef ROMNETDISK
@@ -321,6 +348,7 @@ N3TX1: in      USARTCTL
         out     USARTDATA
         ret
 
+.ifdef ROMNETDISK
 ; TxRDY says only that the holding register is free. The checksum can still be
 ; behind one byte in the shifter, so cover two 8O1 characters before releasing
 ; TxEN. The legacy delay remains selectable for the physical-failure fixture.
@@ -338,6 +366,7 @@ N3TURN1:
         mvi     a,034h
         out     USARTCTL
         ret
+.endif
 N3RX:  push    b
         lxi     b,0            ; 65536 status polls, about one second
 N3RX1: in      USARTCTL
@@ -410,6 +439,5 @@ N3DRIVE:db      0
 N3STATUS:db     0
 N3PREFIX:db     0
 N3TRIES:db      0
-N3OP:   db      0
         end
 .endif
