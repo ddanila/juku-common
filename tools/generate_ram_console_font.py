@@ -46,7 +46,7 @@ def convert(source: Path) -> str:
         "; domsson's oldschool font, CC0-1.0:",
         "; https://opengameart.org/content/ascii-bitmap-font-oldschool",
         f"; source PNG SHA-256: {SOURCE_SHA256}",
-        "RAMFONT:",
+        "RAMFONT5X7:",
     ]
     for code in range(FIRST, LAST + 1):
         index = code - FIRST

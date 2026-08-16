@@ -11,6 +11,7 @@
         public  RKINIT
         public  RKSTAT
         public  RKIN
+        public  RKCONFIG
 .endif
 
 KEYCOLPORT      equ     004h
@@ -64,6 +65,41 @@ RKIN:
         xra     a
         sta     RAMKEYREADY
         lda     RAMKEYCHAR
+        ret
+
+; Return the raw eight-position S21 configuration byte in A. The keyboard
+; drawing assigns S21.1..S21.8 to scan positions 8..15 and logical bits 7..0.
+; A closed switch pulls CONTRDAT/PB5 low, hence the complement before testing
+; bit 5. No debounce is needed: configuration is sampled only at startup.
+RKCONFIG:
+        push    b
+        push    d
+        mvi     b,8
+        mvi     c,8
+        mvi     d,0
+RKCONFIG1:
+        mov     a,b
+        out     KEYCOLPORT
+        in      KEYROWPORT
+        cma
+        ani     020h
+        mov     e,a
+        mov     a,d
+        add     a
+        mov     d,a
+        mov     a,e
+        ora     a
+        jz      RKCONFIG2
+        mov     a,d
+        ori     1
+        mov     d,a
+RKCONFIG2:
+        inr     b
+        dcr     c
+        jnz     RKCONFIG1
+        mov     a,d
+        pop     d
+        pop     b
         ret
 
 ; Scan all columns and return one ASCII/control byte, or zero for no supported

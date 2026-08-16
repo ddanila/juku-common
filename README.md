@@ -16,4 +16,6 @@ Intel 8080 mnemonics accepted by zmac in 8080 mode.
 The original diagnostic and music modules are licensed under the MIT License.
 The platform and transport modules are licensed under the BSD 2-Clause License
 in `LICENSE-BSD-2-Clause`. The embedded ZX0 decoder retains its authorship and
-license notice; see `transport/LICENSE.ZX0` and `transport/README.md`.
+license notice; see `transport/LICENSE.ZX0` and `transport/README.md`. The
+active console font is derived from Romeo Van Snick's MIT-licensed Creep; see
+`platform/LICENSE-CREEP` and `platform/README.md`.

@@ -2,7 +2,7 @@
 ; domsson's oldschool font, CC0-1.0:
 ; https://opengameart.org/content/ascii-bitmap-font-oldschool
 ; source PNG SHA-256: cf7d942a052f451a2bd24e02f193ea96433eeceeb705c8b0b2d2296f3ce57708
-RAMFONT:
+RAMFONT5X7:
         db      000h,000h,000h,000h,000h,000h,000h ; 20 space
         db      020h,020h,020h,020h,020h,000h,020h ; 21 !
         db      050h,050h,000h,000h,000h,000h,000h ; 22 "

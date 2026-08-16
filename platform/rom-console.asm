@@ -2,7 +2,7 @@
 ; Copyright (c) 2026 Danila Sukharev
 ; BSD-2-Clause; see ../LICENSE-BSD-2-Clause.
 ;
-; Text policy, cursor state, cell arithmetic, and the immutable CC0 font stay
+; Text policy, cursor state, cell arithmetic, and the immutable MIT font stay
 ; visible in mode 1. Packed row values are prepared in low RAM and committed by
 ; JROMHELPENTRY, because selecting mode 3 hides this code immediately.
 
@@ -13,7 +13,7 @@ COLS            equ     80
 ROWS            equ     24
 ROWBYTES        equ     400
 CURSORLINE      equ     350
-CURSORPERIOD    equ     0400h
+CURSORPERIOD    equ     0200h
 JROMHELPENTRY   equ     JROMHELPBASE
 
 ROMCONINIT:
@@ -114,7 +114,7 @@ RCCHAROK:
         dad     b
         dad     b
         dad     b
-        lxi     d,RAMFONT
+        lxi     d,RAMFONT80
         dad     d
         xchg
         lxi     h,RCPIXELS
@@ -331,5 +331,6 @@ ROMCONIN:
         jz      ROMCONIN
         jmp     RKIN
 
-        include "ram-console-font.asm"
+CREEP_ASCII_ONLY equ     1
+        include "creep-console-font.asm"
 ROMCONEND:

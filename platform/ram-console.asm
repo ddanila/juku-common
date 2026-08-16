@@ -1,4 +1,4 @@
-; Native MODX-compatible 80x24 bitmap console for RAM-owned Juku systems.
+; DIP-selectable bitmap console for RAM-owned Juku systems.
 ; Copyright (c) 2026 Danila Sukharev
 ; BSD-2-Clause; see ../LICENSE-BSD-2-Clause.
 ;
@@ -12,15 +12,8 @@
 
 MODEPORT        equ     006h
 VRAM            equ     0d800h
-VIDSTRIDE       equ     50              ; 400 pixels
-COLS            equ     80
-ROWS            equ     24
-CELLHEIGHT      equ     8
-ROWBYTES        equ     400             ; 50 * 8 scanlines
-SCREENBYTES     equ     9600            ; 80 * 24 * 5 packed pixels
-SCROLLBYTES     equ     9200            ; retain rows 1..23
-CURSORLINE      equ     350             ; seventh scanline in the cell
-CURSORPERIOD    equ     0400h           ; about 0.7 s per phase on CS00015
+SCREENBYTES     equ     9600
+CURSORPERIOD    equ     0200h           ; about 0.35 s per phase on CS00015
 
 ; Exact MODX writes after the stock video setup. They change the scan timing
 ; from the normal 320-pixel mode to its 400-pixel mode. Reset remains the
@@ -40,6 +33,101 @@ RAMMODXVIDEO:
         out     016h
         ret
 
+; S21 bits 2:1 select the same historical modes exposed by EktaSoft's ESC M n:
+; 00 = 40x24, 01 = 53x24, 10 = 64x20, 11 = MODX-compatible 80x24.
+; The first two share stock 320x241 raster timing; 64x20 uses 384x201.
+RAMSETMODE:
+        sta     RAMVIDMODE
+        ora     a
+        jz      RAMMODE40
+        dcr     a
+        jz      RAMMODE53
+        dcr     a
+        jz      RAMMODE64
+RAMMODE80:
+        mvi     a,80
+        sta     RAMCOLS
+        mvi     a,24
+        sta     RAMROWS
+        mvi     a,5
+        sta     RAMCELLWIDTH
+        mvi     a,8
+        sta     RAMCELLHEIGHT
+        mvi     a,0f8h
+        sta     RAMCELLMASK
+        mvi     a,50
+        sta     RAMVIDSTRIDE
+        lxi     h,400
+        shld    RAMROWBYTES
+        lxi     h,350
+        shld    RAMCURSORLINE
+        jmp     RAMMODXVIDEO
+RAMMODE40:
+        mvi     a,40
+        sta     RAMCOLS
+        mvi     a,8
+        sta     RAMCELLWIDTH
+        mvi     a,0ffh
+        sta     RAMCELLMASK
+        jmp     RAMMODESTOCK
+RAMMODE53:
+        mvi     a,53
+        sta     RAMCOLS
+        mvi     a,6
+        sta     RAMCELLWIDTH
+        mvi     a,0fch
+        sta     RAMCELLMASK
+RAMMODESTOCK:
+        mvi     a,24
+        sta     RAMROWS
+        mvi     a,10
+        sta     RAMCELLHEIGHT
+        mvi     a,40
+        sta     RAMVIDSTRIDE
+        lxi     h,400
+        shld    RAMROWBYTES
+        lxi     h,360
+        shld    RAMCURSORLINE
+        mvi     a,024h
+        out     011h
+        mvi     a,008h
+        out     012h
+        mvi     a,072h
+        out     015h
+        xra     a
+        out     015h
+        mvi     a,025h
+        out     016h
+        ret
+RAMMODE64:
+        mvi     a,64
+        sta     RAMCOLS
+        mvi     a,20
+        sta     RAMROWS
+        mvi     a,6
+        sta     RAMCELLWIDTH
+        mvi     a,10
+        sta     RAMCELLHEIGHT
+        mvi     a,0fch
+        sta     RAMCELLMASK
+        mvi     a,48
+        sta     RAMVIDSTRIDE
+        lxi     h,480
+        shld    RAMROWBYTES
+        lxi     h,432
+        shld    RAMCURSORLINE
+        mvi     a,016h
+        out     011h
+        mvi     a,004h
+        out     012h
+        mvi     a,012h
+        out     015h
+        mvi     a,001h
+        out     015h
+        mvi     a,045h
+        out     016h
+        ret
+
 RAMCONINIT:
         xra     a
         sta     RAMCOL
@@ -47,8 +135,12 @@ RAMCONINIT:
         sta     RAMESC
         sta     RAMCURVISIBLE
         call    RAMCURSORRELOAD
+        call    RKCONFIG
+        sta     RAMCONFIG
+        rrc
+        ani     3
+        call    RAMSETMODE
         call    RAMVIDEO
-        call    RAMMODXVIDEO
         lxi     h,VRAM
         lxi     b,SCREENBYTES
         call    RAMCLEAR
@@ -107,31 +199,70 @@ RAMPRINTABLE:
         cpi     020h
         jc      RAMOUTDONE
         cpi     07fh
-        jc      RAMCHAROK
-        mvi     e,'?'                   ; bound characters outside the font
-RAMCHAROK:
+        jc      RAMCHARASCII
+        lda     RAMVIDMODE
+        cpi     3
+        jnz     RAMCHARQUESTION
+        lxi     h,RAMFONTPSEUDOCODES
+        mvi     b,17
+        mvi     c,0
+RAMCHARPSEUDOLOOK:
         mov     a,e
+        cmp     m
+        jz      RAMCHARPSEUDO
+        inx     h
+        inr     c
+        dcr     b
+        jnz     RAMCHARPSEUDOLOOK
+        jmp     RAMCHARQUESTION
+RAMCHARPSEUDO:
+        mvi     a,8
+        sta     RAMFONTROWS
+        mov     a,c
+        jmp     RAMCHARINDEX
+RAMCHARQUESTION:
+        mvi     e,'?'                   ; bound characters outside the font
+RAMCHARASCII:
+        mvi     a,7
+        sta     RAMFONTROWS
+RAMCHARBASE:
+        mov     a,e
+        sui     020h
+RAMCHARINDEX:
         sta     RAMOUTCHAR              ; RAMCELLADDR uses DE as scratch
         ; Calculate the packed framebuffer cell first. RAMCELLADDR also saves
         ; the bit shift for the five-pixel field in RAMSHIFT.
         call    RAMCELLADDR
         push    h
 
-        ; Font pointer = RAMFONT + (character - 20h) * 7.
+        ; Font pointer = selected table + glyph index * seven/eight rows.
         lda     RAMOUTCHAR
-        sui     020h
         mov     l,a
         mvi     h,0
         mov     c,l
         mvi     b,0
+        lda     RAMFONTROWS
+        cpi     8
+        jz      RAMFONTMUL8
         dad     h                       ; 2n
         dad     h                       ; 4n
         dad     b                       ; 5n
         dad     b                       ; 6n
         dad     b                       ; 7n
-        lxi     d,RAMFONT
+        jmp     RAMFONTREADY
+RAMFONTMUL8:
+        dad     h
+        dad     h
+        dad     h
+RAMFONTREADY:
+        lda     RAMFONTROWS
+        cpi     8
+        lxi     d,RAMFONT80
+        jnz     RAMFONTBASEOK
+        lxi     d,RAMFONTPSEUDO
+RAMFONTBASEOK:
         dad     d
-        xchg                            ; DE = seven font rows
+        xchg                            ; DE = font rows
         pop     h                       ; HL = packed framebuffer cell
 
         call    RAMVIDEO
@@ -140,7 +271,11 @@ RAMCHAROK:
 
         lda     RAMCOL
         inr     a
-        cpi     COLS
+        mov     b,a
+        lda     RAMCOLS
+        mov     c,a
+        mov     a,b
+        cmp     c
         jc      RAMSAVECOL
         xra     a
         sta     RAMCOL
@@ -161,19 +296,37 @@ RAMOUTDONE:
 RAMNEWLINE:
         lda     RAMROW
         inr     a
-        cpi     ROWS
+        mov     b,a
+        lda     RAMROWS
+        mov     c,a
+        mov     a,b
+        cmp     c
         jc      RAMSAVEROW
         call    RAMSCROLL
-        mvi     a,ROWS-1
+        lda     RAMROWS
+        dcr     a
 RAMSAVEROW:
         sta     RAMROW
         ret
 
 RAMSCROLL:
         call    RAMVIDEO
+        lhld    RAMROWBYTES
+        lxi     d,VRAM
+        dad     d
+        xchg                            ; DE = source after first text row
+        push    d
+        lhld    RAMROWBYTES
+        xchg                            ; DE = bytes removed
+        lxi     h,SCREENBYTES
+        mov     a,l
+        sub     e
+        mov     c,a
+        mov     a,h
+        sbb     d
+        mov     b,a                     ; BC = retained bytes
+        pop     d
         lxi     h,VRAM
-        lxi     d,VRAM+ROWBYTES
-        lxi     b,SCROLLBYTES
 RAMCOPY:
         ldax    d
         mov     m,a
@@ -183,17 +336,22 @@ RAMCOPY:
         mov     a,b
         ora     c
         jnz     RAMCOPY
-        lxi     b,ROWBYTES
+        push    h
+        lhld    RAMROWBYTES
+        mov     b,h
+        mov     c,l
+        pop     h
         call    RAMCLEAR
         jmp     RAMNORMAL
 
 ; Return HL at the first byte touched by the current packed cell and retain
 ; (column * 5) modulo 8 in RAMSHIFT.
 RAMCELLADDR:
-        lxi     h,VRAM
         lda     RAMROW
         mov     b,a
-        lxi     d,ROWBYTES
+        lhld    RAMROWBYTES
+        xchg
+        lxi     h,VRAM
 RAMROWADDR:
         mov     a,b
         ora     a
@@ -208,9 +366,21 @@ RAMROWREADY:
         mvi     h,0
         mov     e,l
         mvi     d,0
+        lda     RAMCELLWIDTH
+        cpi     8
+        jz      RAMCOLMUL8
         dad     h                       ; 2n
         dad     h                       ; 4n
         dad     d                       ; 5n
+        cpi     6
+        jnz     RAMCOLMULDONE
+        dad     d                       ; 6n
+        jmp     RAMCOLMULDONE
+RAMCOLMUL8:
+        dad     h
+        dad     h
+        dad     h
+RAMCOLMULDONE:
         mov     a,l
         ani     7
         sta     RAMSHIFT
@@ -230,9 +400,9 @@ RAMBYTEOFF:
         dad     d
         ret
 
-; DE = seven scanline bytes, HL = top scanline cell address.
+; DE = selected font rows, HL = top scanline cell address.
 RAMDRAWGLYPH:
-        mvi     a,7
+        lda     RAMFONTROWS
         sta     RAMGLYPHROWS
 RAMGLYPH:
         ldax    d
@@ -241,23 +411,43 @@ RAMGLYPH:
         push    h
         call    RAMPAINTBYTE
         pop     h
-        lxi     b,VIDSTRIDE
+        lda     RAMVIDSTRIDE
+        mov     c,a
+        mvi     b,0
         dad     b
         pop     d
         lda     RAMGLYPHROWS
         dcr     a
         sta     RAMGLYPHROWS
         jnz     RAMGLYPH
-        xra     a                       ; eighth scanline is blank/cursor
+        lda     RAMCELLHEIGHT
+        mov     b,a
+        lda     RAMFONTROWS
+        mov     c,a
+        mov     a,b
+        sub     c
+        rz
+        sta     RAMGLYPHROWS
+RAMGLYPHBLANK:
+        xra     a
         call    RAMPAINTBYTE
-        ret
+        lda     RAMGLYPHROWS
+        dcr     a
+        sta     RAMGLYPHROWS
+        rz
+        lda     RAMVIDSTRIDE
+        mov     c,a
+        mvi     b,0
+        dad     b
+        jmp     RAMGLYPHBLANK
 
 ; Replace the current five-pixel field. A contains five MSB-first pixels, HL
 ; addresses the first of at most two framebuffer bytes, and RAMSHIFT is 0..7.
 RAMPAINTBYTE:
         mov     b,a                     ; BC = 16-bit pixel field
         mvi     c,0
-        mvi     d,0f8h                  ; DE = 16-bit replacement mask
+        lda     RAMCELLMASK
+        mov     d,a                     ; DE = 16-bit replacement mask
         mvi     e,0
         lda     RAMSHIFT
         sta     RAMWORKSHIFT
@@ -296,23 +486,49 @@ RAMPAINTMERGE:
         mov     m,a
         ret
 
-; Paint or erase the five-pixel underline at the current cell. A is 00h or
-; F8h. The eighth scanline is otherwise always blank, so no shadow buffer is
-; needed and mode-3 read/modify/write remains exact.
+; Toggle the underline field. XOR preserves a CP437 glyph whose connecting
+; vertical stroke occupies the eighth scanline when the cursor moves over it.
 RAMCURSORPAINT:
-        sta     RAMPAINTVALUE
         call    RAMCELLADDR
-        lxi     b,CURSORLINE
+        push    h
+        lhld    RAMCURSORLINE
+        mov     b,h
+        mov     c,l
+        pop     h
         dad     b
-        lda     RAMPAINTVALUE
-        jmp     RAMPAINTBYTE
+        lda     RAMCELLMASK
+        mov     b,a
+        mvi     c,0
+        lda     RAMSHIFT
+RAMCURSORSHIFT:
+        ora     a
+        jz      RAMCURSORMERGE
+        mov     a,b
+        ora     a
+        rar
+        mov     b,a
+        mov     a,c
+        rar
+        mov     c,a
+        lda     RAMSHIFT
+        dcr     a
+        sta     RAMSHIFT
+        jmp     RAMCURSORSHIFT
+RAMCURSORMERGE:
+        mov     a,m
+        xra     b
+        mov     m,a
+        inx     h
+        mov     a,m
+        xra     c
+        mov     m,a
+        ret
 
 RAMCURSORSHOW:
         lda     RAMCURVISIBLE
         ora     a
         rnz
         call    RAMVIDEO
-        mvi     a,0f8h
         call    RAMCURSORPAINT
         mvi     a,1
         sta     RAMCURVISIBLE
@@ -408,8 +624,18 @@ RAMOUTCHAR:     db      0
 RAMSHIFT:       db      0
 RAMWORKSHIFT:   db      0
 RAMGLYPHROWS:   db      0
-RAMPAINTVALUE:  db      0
+RAMFONTROWS:    db      7
 RAMCURVISIBLE:  db      0
 RAMCURCOUNT:    dw      CURSORPERIOD
+RAMCONFIG:      db      0
+RAMVIDMODE:     db      3
+RAMCOLS:        db      80
+RAMROWS:        db      24
+RAMCELLWIDTH:   db      5
+RAMCELLHEIGHT:  db      8
+RAMCELLMASK:    db      0f8h
+RAMVIDSTRIDE:   db      50
+RAMROWBYTES:    dw      400
+RAMCURSORLINE:  dw      350
 
-        include "ram-console-font.asm"
+        include "creep-console-font.asm"
