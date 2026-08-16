@@ -30,10 +30,17 @@ two already-qualified workspace layouts while the CP/M Plus port replaces its
 compatibility adapter with a native CP/M 3 hardware layer.
 
 `netconsole.asm` multiplexes local-authoritative console traffic over the
-same half-duplex USART as NetDisk. An N4 consumer calls `NCENA` only after it
-has consumed the capability marker. Each character or idle input poll is a
+same half-duplex USART as NetDisk. A negotiated N4 consumer calls `NCENA`
+after consuming the capability marker; a direct network-first consumer may
+arm it unconditionally because an unsupported request fails back to local
+console operation. Each character or idle input poll is a
 bounded request/reply turn; a failed host disables the remote path without
-blocking the local screen or keyboard, and later status calls reprobe it. Its
+blocking the local screen or keyboard, and later status calls reprobe it.
+After a remote byte is consumed, the next status call polls immediately so a
+command burst is not delayed by the normal idle floor. Consumers whose local
+status scan is itself slow may assemble with `NETCONSOLE_EAGER_POLL`; this
+uses one bounded remote poll per idle status call while leaving the default
+64-call floor unchanged. Its
 128-iteration transmit drain is the same physical-CS00015-qualified
 turnaround used by NetDisk v3. A longer 400-iteration drain loses the start of
 a reply sent after the host's 2 ms guard at 19,200 baud.

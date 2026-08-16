@@ -17,6 +17,11 @@ USARTDATA      equ     008h
 USARTCTL       equ     009h
 NC_POLL        equ     020h
 NC_OUT         equ     021h
+.ifdef NETCONSOLE_EAGER_POLL
+NCIDLEPOLLS    equ     1
+.else
+NCIDLEPOLLS    equ     64
+.endif
 
 NCENA: mvi     a,1
         sta     NCPRES
@@ -44,7 +49,7 @@ NCSTAT:
         dcr     a
         sta     NCBACK
         jnz     NCSTZERO
-        mvi     a,64           ; idle floor poll, not one turn per CONST
+        mvi     a,NCIDLEPOLLS
         sta     NCBACK
         jmp     NCSTPOLL
 NCSTDISABLED:
@@ -73,6 +78,8 @@ NCIN:  lda     NCKEY
         push    psw
         xra     a
         sta     NCHAVE
+        inr     a
+        sta     NCBACK         ; drain a remote command burst without idle delay
         pop     psw
         ret
 
