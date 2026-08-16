@@ -29,6 +29,15 @@ geometry. The assembly-time `CPM3ADAPTER` selection currently preserves the
 two already-qualified workspace layouts while the CP/M Plus port replaces its
 compatibility adapter with a native CP/M 3 hardware layer.
 
+`netconsole.asm` multiplexes local-authoritative console traffic over the
+same half-duplex USART as NetDisk. An N4 consumer calls `NCENA` only after it
+has consumed the capability marker. Each character or idle input poll is a
+bounded request/reply turn; a failed host disables the remote path without
+blocking the local screen or keyboard, and later status calls reprobe it. Its
+128-iteration transmit drain is the same physical-CS00015-qualified
+turnaround used by NetDisk v3. A longer 400-iteration drain loses the start of
+a reply sent after the host's 2 ms guard at 19,200 baud.
+
 Except for the separately attributed fonts, these files are Copyright (c)
 2026 Danila Sukharev and use `../LICENSE-BSD-2-Clause`.
 

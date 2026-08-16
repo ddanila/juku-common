@@ -121,7 +121,10 @@ NCCALL:sta     NCOP
         mov     a,b
         call    NCTX
 
-        lxi     d,400
+        ; Match the turnaround proven by NetDisk v3 on physical CS00015.
+        ; The old 400-count delay kept Rx disabled past the host's 2 ms reply
+        ; guard, so the leading reply byte could be lost at 19,200 baud.
+        lxi     d,128
 NCDRAIN:
         dcx     d
         mov     a,d
