@@ -21,12 +21,14 @@ USARTDATA      equ     008h
 USARTCTL       equ     009h
 NC_POLL        equ     020h
 NC_OUT         equ     021h
+.ifdef NATIVE_SERVICES
 NC_TIME_GET    equ     022h
 NC_TIME_SET    equ     023h
 NC_STATUS      equ     024h
 ; This native network-ROM profile fixes BIOS at BC00h. GENCPM relocates the
 ; SCB to BB9Ch, hence its canonical +58h clock field is runtime BBF4h.
 SCBDATE        equ     0bbf4h
+.endif
 .ifdef NETCONSOLE_EAGER_POLL
 NCIDLEPOLLS    equ     1
 .else
@@ -188,11 +190,19 @@ NCCALL:sta     NCOP
         call    NCSEND
         lda     NCARG
         call    NCSEND
+.ifdef NATIVE_SERVICES
         lda     NCARG+1
         call    NCSEND
         lda     NCARG+2
         call    NCSEND
         lda     NCARG+3
+.else
+        xra     a
+        call    NCSEND
+        xra     a
+        call    NCSEND
+        xra     a
+.endif
         call    NCSEND
         mov     a,b
         call    NCTX
@@ -231,6 +241,7 @@ NCSYNC:call    NCRX
         call    NCRXC
         jc      NCFAIL
         sta     NCSTATUS
+.ifdef NATIVE_SERVICES
         lda     NCOP
         cpi     NC_TIME_GET
         jnz     NCNOTTIME
@@ -249,6 +260,9 @@ NCTIMERX:
         jmp     NCNOKEY
 NCNOTTIME:
         lda     NCSTATUS
+.else
+        lda     NCSTATUS
+.endif
         cpi     2
         jnz     NCNOKEY
         call    NCRXC
@@ -267,6 +281,7 @@ NCNOKEY:
         cpi     2
         jnz     NCFAIL
 NCSUCCESS:
+.ifdef NATIVE_SERVICES
         lda     NCOP
         cpi     NC_TIME_GET
         jnz     NCSUCCESS1
@@ -281,6 +296,7 @@ NCTIMECOMMIT:
         dcr     c
         jnz     NCTIMECOMMIT
 NCSUCCESS1:
+.endif
         mvi     a,1
         sta     NCEN
         xra     a
@@ -338,6 +354,11 @@ NCHAVE:db      0
 NCKEY: db      0
 NCSEQ: db      0
 NCOP:  db      0
+.ifdef NATIVE_SERVICES
 NCARG: ds      4
 NCSTATUS:db    0
 NCTBUF:ds      5
+.else
+NCARG: db      0
+NCSTATUS:db    0
+.endif
