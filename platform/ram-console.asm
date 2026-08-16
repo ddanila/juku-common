@@ -15,6 +15,10 @@ VRAM            equ     0d800h
 SCREENBYTES     equ     9600
 CURSORPERIOD    equ     0200h           ; about 0.35 s per phase on CS00015
 
+.ifdef RAMKEYBOARD
+        extrn   RKCONFIG
+.endif
+
 ; Exact MODX writes after the stock video setup. They change the scan timing
 ; from the normal 320-pixel mode to its 400-pixel mode. Reset remains the
 ; documented way back to the stock modes.
