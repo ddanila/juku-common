@@ -13,6 +13,7 @@
         public  NCIN
         public  NCOUT
         public  NCTIME
+        public  NCPUBLISH
 
 USARTDATA      equ     008h
 USARTCTL       equ     009h
@@ -20,6 +21,7 @@ NC_POLL        equ     020h
 NC_OUT         equ     021h
 NC_TIME_GET    equ     022h
 NC_TIME_SET    equ     023h
+NC_STATUS      equ     024h
 ; This native network-ROM profile fixes BIOS at BC00h. GENCPM relocates the
 ; SCB to BB9Ch, hence its canonical +58h clock field is runtime BBF4h.
 SCBDATE        equ     0bbf4h
@@ -138,6 +140,30 @@ NCTIMEFAIL:
 NCTIMERET:
         pop     d
         pop     h
+        ret
+
+; Publish the same bounded configuration tuple shown by the target STATUS
+; utility. A=raw S21, B=decoded video mode, D=feature flags, E=last clock
+; status. This is best-effort observability: preserve every caller register
+; and leave host loss to the existing NCCALL recovery path.
+NCPUBLISH:
+        push    psw
+        push    b
+        push    d
+        push    h
+        sta     NCARG
+        mov     a,b
+        sta     NCARG+1
+        mov     a,d
+        sta     NCARG+2
+        mov     a,e
+        sta     NCARG+3
+        mvi     a,NC_STATUS
+        call    NCCALL
+        pop     h
+        pop     d
+        pop     b
+        pop     psw
         ret
 
 ; A=operation, NCARG=argument. Return zero for a valid status 0/2 response.
