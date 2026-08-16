@@ -12,8 +12,8 @@
         public  NCSTAT
         public  NCIN
         public  NCOUT
+.ifdef NATIVE_SERVICES
         public  NCTIME
-.ifdef NATIVE_STATUS
         public  NCPUBLISH
 .endif
 
@@ -111,6 +111,7 @@ NCOUTDONE:
         pop     psw
         ret
 
+.ifdef NATIVE_SERVICES
 ; CP/M 3 TIME transport. C=00h fetches the host clock; C=FFh publishes the
 ; SCB date/hour/minute as a session-only host offset. Preserve HL and DE as
 ; required by the System Guide. A=0 succeeds; A=1 leaves the SCB unchanged.
@@ -144,7 +145,6 @@ NCTIMERET:
         pop     h
         ret
 
-.ifdef NATIVE_STATUS
 ; Publish the same bounded configuration tuple shown by the target STATUS
 ; utility. A=raw S21, B=decoded video mode, D=feature flags, E=last clock
 ; status. This is best-effort observability: preserve every caller register

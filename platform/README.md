@@ -45,10 +45,10 @@ uses one bounded remote poll per idle status call while leaving the default
 turnaround used by NetDisk v3. A longer 400-iteration drain loses the start of
 a reply sent after the host's 2 ms guard at 19,200 baud.
 
-The module also owns the optional NetDisk-v3 service transports. `NCTIME`
+Defining `NATIVE_SERVICES` adds the optional NetDisk-v3 service transports.
+`NCTIME`
 implements the CP/M Plus GET/SET clock contract without changing the host OS
-clock. Defining `NATIVE_STATUS` adds `NCPUBLISH`, which sends one idempotent
-status tuple (raw S21, decoded video
+clock. `NCPUBLISH` sends one idempotent status tuple (raw S21, decoded video
 mode, feature flags, and last clock result) so target and host diagnostics
 report the same configuration without adding unsolicited boot traffic.
 
