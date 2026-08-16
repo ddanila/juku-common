@@ -19,7 +19,11 @@ FIRST = 0x20
 LAST = 0x7E
 SHEET_COLUMNS = 18
 CELL_WIDTH = 7
-CELL_HEIGHT = 8
+# The sprite sheet leaves one empty separator row between each 8-pixel cell.
+# Its six glyph rows therefore start at y=1,10,19,28,37,46: a 9-pixel pitch.
+# Treating the pitch as 8 made every row after the first drift upward and
+# produced deterministic, increasingly corrupted glyphs.
+CELL_HEIGHT = 9
 GLYPH_X = 1
 GLYPH_Y = 1
 GLYPH_WIDTH = 5

@@ -7,6 +7,8 @@ CP/M Plus Juku port:
   50-byte stride and eight-scanline cell, with a blinking underline cursor;
 - `ram-console-font.asm`: domsson's CC0 `oldschool` 5x7 font, converted to
   seven MSB-first Juku scanlines by `../tools/generate_ram_console_font.py`;
+- `ram-console-font-reference.txt`: human-reviewable source glyphs used by an
+  independent framebuffer oracle, not generated assembler;
 - `ram-keyboard.asm`: interrupt-independent matrix keyboard driver; defining
   `ROMKEYBOARD` plus `ROMKEYSTATEBASE` reuses the same code/tables in resident
   ROM while keeping its three mutable bytes in low RAM;
@@ -38,6 +40,20 @@ python3 tools/generate_ram_console_font.py charmap-oldschool_white.png \
 
 Regeneration is optional and requires Pillow; ordinary assembly consumes the
 checked-in generated source and adds no image-library build dependency.
+
+The offline oracle verifies all 95 generated glyphs against the readable
+source reference and can render a 400x192 PBM without executing the 8080
+renderer:
+
+```sh
+python3 tools/ram_console_oracle.py \
+  --render-text 'CP/M Plus 3.1 Juku | A> DIR' --pbm /tmp/juku-console.pbm
+```
+
+The sprite sheet has an unusual nine-pixel vertical pitch: seven glyph rows,
+then two separator rows. The source reference and oracle deliberately keep
+that extraction fact separate from the generated table so a bad generator
+cannot validate itself.
 
 Network-first ROM consumers call `JCGINIT` successfully before using another
 gate entry. The gate selects memory mode 1 without clobbering the caller's
