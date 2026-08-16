@@ -32,6 +32,8 @@ NC_STATUS      equ     024h
 ; This native network-ROM profile fixes BIOS at BC00h. GENCPM relocates the
 ; SCB to BB9Ch, hence its canonical +58h clock field is runtime BBF4h.
 SCBDATE        equ     0bbf4h
+NCRECONNECT    equ     0c5fch
+NCLASTFAIL     equ     0c5fdh
 endif
 .ifdef NETCONSOLE_EAGER_POLL
 NCIDLEPOLLS    equ     1
@@ -45,6 +47,10 @@ NCENA: mvi     a,1
         sta     NCBACK         ; poll on the first remote status call
         xra     a
         sta     NCHAVE
+if NATIVE_SERVICES
+        sta     NCRECONNECT
+        sta     NCLASTFAIL
+endif
         ret
 
 ; Return FFh when a remote byte is cached, otherwise zero. Preserve BC/DE/HL.
@@ -299,6 +305,21 @@ NCTIMECOMMIT:
         jnz     NCTIMECOMMIT
 NCSUCCESS1:
 endif
+if NATIVE_SERVICES
+        lda     NCEN
+        ora     a
+        jnz     NCSUCCESS2
+        lda     NCLASTFAIL
+        ora     a
+        jz      NCSUCCESS2
+        lda     NCRECONNECT
+        inr     a
+        jnz     NCRECONNECTSTORE
+        dcr     a                       ; saturate at FFh
+NCRECONNECTSTORE:
+        sta     NCRECONNECT
+NCSUCCESS2:
+endif
         mvi     a,1
         sta     NCEN
         xra     a
@@ -308,6 +329,10 @@ NCFAIL:xra     a
         sta     NCEN
         sta     NCHAVE
         sta     NCBACK         ; underflow gives 256 local CONST calls
+if NATIVE_SERVICES
+        inr     a
+        sta     NCLASTFAIL     ; 01h: bounded N4 timeout/framing failure
+endif
         mvi     a,1
         ret
 
