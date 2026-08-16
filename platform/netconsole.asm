@@ -7,28 +7,32 @@
 ; character; status polls are rate-limited while idle. A missing/broken host
 ; disables mirroring and polling until a later status call reprobes it.
 
+.ifndef NATIVE_SERVICES
+NATIVE_SERVICES equ     0
+.endif
+
         cseg
         public  NCENA
         public  NCSTAT
         public  NCIN
         public  NCOUT
-.ifdef NATIVE_SERVICES
+if NATIVE_SERVICES
         public  NCTIME
         public  NCPUBLISH
-.endif
+endif
 
 USARTDATA      equ     008h
 USARTCTL       equ     009h
 NC_POLL        equ     020h
 NC_OUT         equ     021h
-.ifdef NATIVE_SERVICES
+if NATIVE_SERVICES
 NC_TIME_GET    equ     022h
 NC_TIME_SET    equ     023h
 NC_STATUS      equ     024h
 ; This native network-ROM profile fixes BIOS at BC00h. GENCPM relocates the
 ; SCB to BB9Ch, hence its canonical +58h clock field is runtime BBF4h.
 SCBDATE        equ     0bbf4h
-.endif
+endif
 .ifdef NETCONSOLE_EAGER_POLL
 NCIDLEPOLLS    equ     1
 .else
@@ -113,7 +117,7 @@ NCOUTDONE:
         pop     psw
         ret
 
-.ifdef NATIVE_SERVICES
+if NATIVE_SERVICES
 ; CP/M 3 TIME transport. C=00h fetches the host clock; C=FFh publishes the
 ; SCB date/hour/minute as a session-only host offset. Preserve HL and DE as
 ; required by the System Guide. A=0 succeeds; A=1 leaves the SCB unchanged.
@@ -128,11 +132,11 @@ NCTIME:
         lda     SCBDATE
         sta     NCARG
         lda     SCBDATE+1
-        sta     NCARG+1
+        sta     NCARG1
         lda     SCBDATE+2
-        sta     NCARG+2
+        sta     NCARG2
         lda     SCBDATE+3
-        sta     NCARG+3
+        sta     NCARG3
         mvi     a,NC_TIME_SET
         jmp     NCTIMECALL
 NCTIMEGET:
@@ -158,11 +162,11 @@ NCPUBLISH:
         push    h
         sta     NCARG
         mov     a,b
-        sta     NCARG+1
+        sta     NCARG1
         mov     a,d
-        sta     NCARG+2
+        sta     NCARG2
         mov     a,e
-        sta     NCARG+3
+        sta     NCARG3
         mvi     a,NC_STATUS
         call    NCCALL
         pop     h
@@ -170,7 +174,7 @@ NCPUBLISH:
         pop     b
         pop     psw
         ret
-.endif
+endif
 
 ; A=operation, NCARG=argument. Return zero for a valid status 0/2 response.
 NCCALL:sta     NCOP
@@ -190,19 +194,19 @@ NCCALL:sta     NCOP
         call    NCSEND
         lda     NCARG
         call    NCSEND
-.ifdef NATIVE_SERVICES
-        lda     NCARG+1
+if NATIVE_SERVICES
+        lda     NCARG1
         call    NCSEND
-        lda     NCARG+2
+        lda     NCARG2
         call    NCSEND
-        lda     NCARG+3
+        lda     NCARG3
 .else
         xra     a
         call    NCSEND
         xra     a
         call    NCSEND
         xra     a
-.endif
+endif
         call    NCSEND
         mov     a,b
         call    NCTX
@@ -241,7 +245,7 @@ NCSYNC:call    NCRX
         call    NCRXC
         jc      NCFAIL
         sta     NCSTATUS
-.ifdef NATIVE_SERVICES
+if NATIVE_SERVICES
         lda     NCOP
         cpi     NC_TIME_GET
         jnz     NCNOTTIME
@@ -260,9 +264,7 @@ NCTIMERX:
         jmp     NCNOKEY
 NCNOTTIME:
         lda     NCSTATUS
-.else
-        lda     NCSTATUS
-.endif
+endif
         cpi     2
         jnz     NCNOKEY
         call    NCRXC
@@ -281,7 +283,7 @@ NCNOKEY:
         cpi     2
         jnz     NCFAIL
 NCSUCCESS:
-.ifdef NATIVE_SERVICES
+if NATIVE_SERVICES
         lda     NCOP
         cpi     NC_TIME_GET
         jnz     NCSUCCESS1
@@ -296,7 +298,7 @@ NCTIMECOMMIT:
         dcr     c
         jnz     NCTIMECOMMIT
 NCSUCCESS1:
-.endif
+endif
         mvi     a,1
         sta     NCEN
         xra     a
@@ -354,11 +356,11 @@ NCHAVE:db      0
 NCKEY: db      0
 NCSEQ: db      0
 NCOP:  db      0
-.ifdef NATIVE_SERVICES
-NCARG: ds      4
-NCSTATUS:db    0
-NCTBUF:ds      5
-.else
 NCARG: db      0
 NCSTATUS:db    0
-.endif
+if NATIVE_SERVICES
+NCARG1:db      0
+NCARG2:db      0
+NCARG3:db      0
+NCTBUF:ds      5
+endif
