@@ -12,11 +12,17 @@
         public  NCSTAT
         public  NCIN
         public  NCOUT
+        public  NCTIME
 
 USARTDATA      equ     008h
 USARTCTL       equ     009h
 NC_POLL        equ     020h
 NC_OUT         equ     021h
+NC_TIME_GET    equ     022h
+NC_TIME_SET    equ     023h
+; This native network-ROM profile fixes BIOS at BC00h. GENCPM relocates the
+; SCB to BB9Ch, hence its canonical +58h clock field is runtime BBF4h.
+SCBDATE        equ     0bbf4h
 .ifdef NETCONSOLE_EAGER_POLL
 NCIDLEPOLLS    equ     1
 .else
@@ -101,6 +107,39 @@ NCOUTDONE:
         pop     psw
         ret
 
+; CP/M 3 TIME transport. C=00h fetches the host clock; C=FFh publishes the
+; SCB date/hour/minute as a session-only host offset. Preserve HL and DE as
+; required by the System Guide. A=0 succeeds; A=1 leaves the SCB unchanged.
+NCTIME:
+        push    h
+        push    d
+        mov     a,c
+        ora     a
+        jz      NCTIMEGET
+        inr     a
+        jnz     NCTIMEFAIL
+        lda     SCBDATE
+        sta     NCARG
+        lda     SCBDATE+1
+        sta     NCARG+1
+        lda     SCBDATE+2
+        sta     NCARG+2
+        lda     SCBDATE+3
+        sta     NCARG+3
+        mvi     a,NC_TIME_SET
+        jmp     NCTIMECALL
+NCTIMEGET:
+        mvi     a,NC_TIME_GET
+NCTIMECALL:
+        call    NCCALL
+        jmp     NCTIMERET
+NCTIMEFAIL:
+        mvi     a,1
+NCTIMERET:
+        pop     d
+        pop     h
+        ret
+
 ; A=operation, NCARG=argument. Return zero for a valid status 0/2 response.
 NCCALL:sta     NCOP
         lda     NCSEQ
@@ -119,11 +158,11 @@ NCCALL:sta     NCOP
         call    NCSEND
         lda     NCARG
         call    NCSEND
-        xra     a
+        lda     NCARG+1
         call    NCSEND
-        xra     a
+        lda     NCARG+2
         call    NCSEND
-        xra     a
+        lda     NCARG+3
         call    NCSEND
         mov     a,b
         call    NCTX
@@ -162,6 +201,24 @@ NCSYNC:call    NCRX
         call    NCRXC
         jc      NCFAIL
         sta     NCSTATUS
+        lda     NCOP
+        cpi     NC_TIME_GET
+        jnz     NCNOTTIME
+        lda     NCSTATUS
+        ora     a
+        jnz     NCNOKEY
+        lxi     h,NCTBUF
+        mvi     d,5
+NCTIMERX:
+        call    NCRXC
+        jc      NCFAIL
+        mov     m,a
+        inx     h
+        dcr     d
+        jnz     NCTIMERX
+        jmp     NCNOKEY
+NCNOTTIME:
+        lda     NCSTATUS
         cpi     2
         jnz     NCNOKEY
         call    NCRXC
@@ -180,6 +237,20 @@ NCNOKEY:
         cpi     2
         jnz     NCFAIL
 NCSUCCESS:
+        lda     NCOP
+        cpi     NC_TIME_GET
+        jnz     NCSUCCESS1
+        lxi     h,NCTBUF
+        lxi     d,SCBDATE
+        mvi     c,5
+NCTIMECOMMIT:
+        mov     a,m
+        stax    d
+        inx     h
+        inx     d
+        dcr     c
+        jnz     NCTIMECOMMIT
+NCSUCCESS1:
         mvi     a,1
         sta     NCEN
         xra     a
@@ -237,5 +308,6 @@ NCHAVE:db      0
 NCKEY: db      0
 NCSEQ: db      0
 NCOP:  db      0
-NCARG: db      0
+NCARG: ds      4
 NCSTATUS:db    0
+NCTBUF:ds      5
