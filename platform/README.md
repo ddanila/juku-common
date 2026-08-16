@@ -47,7 +47,8 @@ a reply sent after the host's 2 ms guard at 19,200 baud.
 
 The module also owns the optional NetDisk-v3 service transports. `NCTIME`
 implements the CP/M Plus GET/SET clock contract without changing the host OS
-clock. `NCPUBLISH` sends one idempotent status tuple (raw S21, decoded video
+clock. Defining `NATIVE_STATUS` adds `NCPUBLISH`, which sends one idempotent
+status tuple (raw S21, decoded video
 mode, feature flags, and last clock result) so target and host diagnostics
 report the same configuration without adding unsolicited boot traffic.
 

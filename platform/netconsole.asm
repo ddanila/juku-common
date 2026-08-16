@@ -13,7 +13,9 @@
         public  NCIN
         public  NCOUT
         public  NCTIME
+.ifdef NATIVE_STATUS
         public  NCPUBLISH
+.endif
 
 USARTDATA      equ     008h
 USARTCTL       equ     009h
@@ -142,6 +144,7 @@ NCTIMERET:
         pop     h
         ret
 
+.ifdef NATIVE_STATUS
 ; Publish the same bounded configuration tuple shown by the target STATUS
 ; utility. A=raw S21, B=decoded video mode, D=feature flags, E=last clock
 ; status. This is best-effort observability: preserve every caller register
@@ -165,6 +168,7 @@ NCPUBLISH:
         pop     b
         pop     psw
         ret
+.endif
 
 ; A=operation, NCARG=argument. Return zero for a valid status 0/2 response.
 NCCALL:sta     NCOP
