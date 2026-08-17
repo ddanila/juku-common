@@ -150,3 +150,15 @@ Every mode owns exactly 9,600 framebuffer bytes. The first three reproduce
 the stock/EktaSoft timing writes; the fourth reproduces MODX. The current ABI
 1 resident-ROM console intentionally remains the fixed 80x24 baseline, while
 the all-RAM path proves the switchable policy before a future ABI extension.
+
+The same cold-start sample selects the character bank with S21 bits 4:3:
+
+| bits 4:3 | character bank |
+| --- | --- |
+| `00` | English ASCII plus CP437 UI glyphs |
+| `01` | English plus ISO-8859-1 Estonian `ÄÕÖÜäõöü` |
+| `10` | English plus Russian CP866; CP437 UI glyphs remain B0h..DFh |
+| `11` | English/user-remap fallback |
+
+Only the sparse extension tables change. Control handling, cell layout,
+scrolling, cursor, and pixel painting remain one renderer.

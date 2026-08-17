@@ -10,6 +10,7 @@ import re
 ROOT = Path(__file__).resolve().parents[1]
 REFERENCE = ROOT / "platform" / "creep-console-font-reference.txt"
 ASSEMBLY = ROOT / "platform" / "creep-console-font.asm"
+LOCALE_REFERENCE = ROOT / "platform" / "locale-console-fonts-reference.txt"
 PSEUDO = (0xB0, 0xB3, 0xB4, 0xBF, 0xC0, 0xC1, 0xC2, 0xC3,
           0xC4, 0xC5, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF)
 
@@ -31,6 +32,21 @@ def load_reference() -> dict[int, tuple[str, ...]]:
         raise ValueError("ASCII reference is incomplete")
     if tuple(code for code in result if code >= 0x80) != PSEUDO:
         raise ValueError("CP437 UI subset/order changed")
+    return result
+
+
+def load_locale_reference() -> dict[tuple[int, int], tuple[str, ...]]:
+    """Return (locale, encoded byte) glyphs for Estonian=1/Russian=2."""
+    result = {}
+    locale_names = {"ESTONIAN": 1, "CP866": 2}
+    for number, raw in enumerate(LOCALE_REFERENCE.read_text().splitlines(), 1):
+        if not raw or raw.startswith("#"):
+            continue
+        fields = raw.split()
+        if len(fields) != 10 or fields[0] not in locale_names:
+            raise ValueError(f"{LOCALE_REFERENCE}:{number}: malformed glyph")
+        result[(locale_names[fields[0]], int(fields[1], 16))] = \
+            tuple(fields[3:])
     return result
 
 
@@ -61,9 +77,12 @@ VIDEO_MODES = {
 
 
 def render_transcript(transcript: bytes, *, cursor: bool = True,
-                      mode: int = 3) -> bytes:
+                      mode: int = 3, locale: int = 0) -> bytes:
     """Render one DIP-selected mode independently from the 8080 routine."""
     reference = load_reference()
+    locale_reference = load_locale_reference()
+    if locale not in range(4):
+        raise ValueError("locale must be 0..3")
     columns, rows, cell_width, cell_height, stride = VIDEO_MODES[mode]
     row_bytes = stride * cell_height
     framebuffer = bytearray(9600)
@@ -105,9 +124,14 @@ def render_transcript(transcript: bytes, *, cursor: bool = True,
         elif character == 0x08:
             column = max(0, column - 1)
         elif character >= 0x20:
-            glyph = (reference.get(character, reference[ord("?")])
-                     if character < 0x7F or mode == 3
-                     else reference[ord("?")])
+            if character < 0x7F:
+                glyph = reference[character]
+            elif (locale, character) in locale_reference:
+                glyph = locale_reference[(locale, character)]
+            elif mode == 3 and character in reference:
+                glyph = reference[character]
+            else:
+                glyph = reference[ord("?")]
             paint(row, column, glyph)
             column += 1
             if column == columns:
@@ -160,7 +184,19 @@ def main() -> int:
         raise SystemExit("repeated CP437 C4 cells cannot form a solid line")
     if reference[0xB3][0][2] != "#" or reference[0xB3][-1][2] != "#":
         raise SystemExit("stacked CP437 B3 cells cannot form a solid line")
-    print("Creep console oracle: PASS (95 text + 17 CP437 UI glyphs)")
+    locale_reference = load_locale_reference()
+    if len(locale_reference) != 74:
+        raise SystemExit("locale font reference is incomplete")
+    # All locales share ASCII and pseudographics, while their extension bytes
+    # must select genuinely different framebuffer pixels.
+    if render_transcript(b"A\xC4", locale=0) == \
+            render_transcript(b"A\xC4", locale=1):
+        raise SystemExit("Estonian bank is not selected by the renderer oracle")
+    if render_transcript(b"A\x80", locale=0) == \
+            render_transcript(b"A\x80", locale=2):
+        raise SystemExit("Russian bank is not selected by the renderer oracle")
+    print("Creep console oracle: PASS "
+          "(95 text + 17 CP437 UI + 74 locale glyphs)")
     return 0
 
 

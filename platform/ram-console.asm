@@ -40,6 +40,9 @@ RAMMODXVIDEO:
 ; S21 bits 2:1 select the same historical modes exposed by EktaSoft's ESC M n:
 ; 00 = 40x24, 01 = 53x24, 10 = 64x20, 11 = MODX-compatible 80x24.
 ; The first two share stock 320x241 raster timing; 64x20 uses 384x201.
+; Bits 4:3 select 00 English, 01 Estonian, 10 Russian CP866, and 11 the
+; English/user-remap fallback. Locale glyphs share this renderer and retain
+; the CP437 B0h..DFh text-interface bank.
 RAMSETMODE:
         sta     RAMVIDMODE
         ora     a
@@ -141,6 +144,13 @@ RAMCONINIT:
         call    RAMCURSORRELOAD
         call    RKCONFIG
         sta     RAMCONFIG
+        push    psw
+        rrc
+        rrc
+        rrc
+        ani     3
+        sta     RAMLOCALE
+        pop     psw
         rrc
         ani     3
         call    RAMSETMODE
@@ -204,6 +214,12 @@ RAMPRINTABLE:
         jc      RAMOUTDONE
         cpi     07fh
         jc      RAMCHARASCII
+        lda     RAMLOCALE
+        cpi     1
+        jz      RAMCHAREST
+        cpi     2
+        jz      RAMCHARRUS
+RAMCHARPSEUDOTRY:
         lda     RAMVIDMODE
         cpi     3
         jnz     RAMCHARQUESTION
@@ -222,6 +238,8 @@ RAMCHARPSEUDOLOOK:
 RAMCHARPSEUDO:
         mvi     a,8
         sta     RAMFONTROWS
+        lxi     h,RAMFONTPSEUDO
+        shld    RAMFONTBASEPTR
         mov     a,c
         jmp     RAMCHARINDEX
 RAMCHARQUESTION:
@@ -229,6 +247,8 @@ RAMCHARQUESTION:
 RAMCHARASCII:
         mvi     a,7
         sta     RAMFONTROWS
+        lxi     h,RAMFONT80
+        shld    RAMFONTBASEPTR
 RAMCHARBASE:
         mov     a,e
         sui     020h
@@ -259,12 +279,8 @@ RAMFONTMUL8:
         dad     h
         dad     h
 RAMFONTREADY:
-        lda     RAMFONTROWS
-        cpi     8
-        lxi     d,RAMFONT80
-        jnz     RAMFONTBASEOK
-        lxi     d,RAMFONTPSEUDO
-RAMFONTBASEOK:
+        xchg                            ; DE = glyph byte offset
+        lhld    RAMFONTBASEPTR
         dad     d
         xchg                            ; DE = font rows
         pop     h                       ; HL = packed framebuffer cell
@@ -295,6 +311,51 @@ RAMOUTDONE:
         pop     d
         pop     b
         pop     psw
+        ret
+
+; Sparse locale banks return a compact glyph index without changing the
+; renderer. Estonian uses the ISO-8859-1 byte values of its eight national
+; letters. Russian uses CP866, whose Cyrillic ranges avoid CP437 B0h..DFh.
+RAMCHAREST:
+        lxi     h,RAMFONTESTONIAN
+        shld    RAMFONTBASEPTR
+        lxi     h,RAMFONTESTONIANCODES
+        mvi     b,8
+        call    RAMFONTSEARCH
+        jnc     RAMCHARLOCALE
+        jmp     RAMCHARPSEUDOTRY
+RAMCHARRUS:
+        lxi     h,RAMFONTCP866
+        shld    RAMFONTBASEPTR
+        lxi     h,RAMFONTCP866CODES
+        mvi     b,66
+        call    RAMFONTSEARCH
+        jnc     RAMCHARLOCALE
+        jmp     RAMCHARPSEUDOTRY
+RAMCHARLOCALE:
+        mvi     b,7
+        mov     c,a
+        mov     a,b
+        sta     RAMFONTROWS
+        mov     a,c
+        jmp     RAMCHARINDEX
+
+; E = byte, HL = code table, B = count. Return A=index/CY clear, or CY set.
+RAMFONTSEARCH:
+        mvi     c,0
+RAMFONTSEARCH1:
+        mov     a,e
+        cmp     m
+        jz      RAMFONTFOUND
+        inx     h
+        inr     c
+        dcr     b
+        jnz     RAMFONTSEARCH1
+        stc
+        ret
+RAMFONTFOUND:
+        mov     a,c
+        ora     a                       ; clear carry
         ret
 
 RAMNEWLINE:
@@ -632,6 +693,7 @@ RAMFONTROWS:    db      7
 RAMCURVISIBLE:  db      0
 RAMCURCOUNT:    dw      CURSORPERIOD
 RAMCONFIG:      db      0
+RAMLOCALE:      db      0
 RAMVIDMODE:     db      3
 RAMCOLS:        db      80
 RAMROWS:        db      24
@@ -641,5 +703,7 @@ RAMCELLMASK:    db      0f8h
 RAMVIDSTRIDE:   db      50
 RAMROWBYTES:    dw      400
 RAMCURSORLINE:  dw      350
+RAMFONTBASEPTR: dw      RAMFONT80
 
         include "creep-console-font.asm"
+        include "locale-console-fonts.asm"
