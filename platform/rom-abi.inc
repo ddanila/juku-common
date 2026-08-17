@@ -7,10 +7,14 @@
 
 JROMABIBASE     equ     0ff00h
 JROMABIMAJOR    equ     1
+.ifdef ROM_ABI_EXTENDED
+JROMABIMINOR    equ     2
+.else
 .ifdef ROM_ABI_LOCALE
 JROMABIMINOR    equ     1
 .else
 JROMABIMINOR    equ     0
+.endif
 .endif
 JROMABISIZE     equ     0100h
 
@@ -36,6 +40,9 @@ JROMFDIAG       equ     0020h
 JROMFNETCON     equ     0040h
 JROMFLOCALE     equ     0080h
 JROMFKEYREMAP   equ     0100h
+JROMFCONBLOCK   equ     0200h
+JROMFNETMULTI   equ     0400h
+JROMFKEYRAW     equ     0800h
 
 ; Fixed three-byte JMP vectors. ABI minor versions may append behavior but
 ; must never move or change an existing vector's calling convention.
@@ -57,6 +64,11 @@ JROMGETINFO     equ     JROMABIBASE+047h
 JROMCONFIG      equ     JROMABIBASE+04ah
 JROMKEYREMAP    equ     JROMABIBASE+04dh
 JROMBOOTPOLICY  equ     JROMABIBASE+050h
+.endif
+.ifdef ROM_ABI_EXTENDED
+JROMCONBLOCK    equ     JROMABIBASE+053h
+JROMNETMULTI    equ     JROMABIBASE+056h
+JROMKEYRAW      equ     JROMABIBASE+059h
 .endif
 
 ; JCGNETDISK request v1 (10 bytes at caller-owned low RAM).
@@ -99,4 +111,9 @@ JCGGETINFOADDR  equ     JROMGATEBASE+027h
 .ifdef ROM_ABI_LOCALE
 JCGCONFIGADDR   equ     JROMGATEBASE+02ah
 JCGKEYREMAPADDR equ     JROMGATEBASE+02dh
+.endif
+.ifdef ROM_ABI_EXTENDED
+JCGCONBLOCKADDR equ     JROMGATEBASE+033h
+JCGNETMULTIADDR equ     JROMGATEBASE+036h
+JCGKEYRAWADDR   equ     JROMGATEBASE+039h
 .endif

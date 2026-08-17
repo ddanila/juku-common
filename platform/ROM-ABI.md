@@ -62,6 +62,21 @@ The ABI 1.0 vectors and behavior are unchanged. A 1.0 consumer accepts a 1.1
 ROM and simply ignores the appended vectors; a 1.1 consumer rejects an older
 ROM before calling them.
 
+ABI 1.2 appends three optional, fixed vectors and advertises a feature bit for
+each one. The ABI 1.0 and 1.1 addresses and contracts remain unchanged:
+
+| gate / ROM vector | feature | contract |
+| --- | --- | --- |
+| `JCGCONBLOCK` / `FF53h` | `JROMFCONBLOCK` | HL points below `D800h`, BC is 1..256 bytes. Render the complete span with the ordinary console policy and one gate crossing. Return A=0/CY clear, or A=FFh/CY set for a zero, oversized, or overlay-crossing span. |
+| `JCGNETMULTI` / `FF56h` | `JROMFNETMULTI` | HL points to a count byte (1..8) followed by that many ordinary ten-byte NetDisk-v1 request blocks. Execute in order and stop at the first nonzero status. Synchronous writes and every cache invalidation rule are identical to `JCGNETDISK`. |
+| `JCGKEYRAW` / `FF59h` | `JROMFKEYRAW` | Instantaneous untranslated scan: CY clear returns A=column 0..14 and B=the complete row/modifier sample; CY set returns B=FFh when no key or modifier is active. S21 is excluded from contact detection. |
+
+ABI 1.2's low-RAM gate remains 214 bytes. Its fixed vector slots use a single
+register-preserving dispatcher, selected from the vector return address, so
+the appended services do not collide with the helper at `D700h`. The resident
+sound vector is also implemented and advertises `JROMFSOUND`: A=0 forces
+silence and A=1 plays the bounded shared diagnostic phrase.
+
 The ABI 1.1 console keeps the same resident text policy in every geometry.
 Its copied mode-3 helper expands from 119 to the full 128-byte reserved helper
 window so row stride, scroll extent, packed cell width, and cursor scanline
@@ -92,7 +107,7 @@ The request block retains CP/M policy in the consumer while resident ROM owns
 framing, retry, cache coherence, and the shared serial path. Feature bits
 advertise only implemented services.
 
-The ABI 1.1 C5 implementation retains independent A:/B: validity and buffer
+The ABI 1.1 C5 and ABI 1.2 implementations retain independent A:/B: validity and buffer
 metadata when the caller supplies distinct cache pointers. A caller may still
 reuse one pointer for both drives: an alias check invalidates the other drive
 before the shared storage can be overwritten, so every ABI 1.0 consumer keeps

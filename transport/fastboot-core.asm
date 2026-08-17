@@ -39,6 +39,9 @@ EXTENSION_SIZE  equ     0100h
 ; record and finds the padded or exact extension in the metadata.
         jmp     start
 .ifdef FASTBOOT_STREAM
+.ifdef FASTBOOT_V16
+        db      'J','F','1','6'
+.else
 .ifdef FASTBOOT_V15
         db      'J','F','1','5'
 .else
@@ -61,6 +64,7 @@ EXTENSION_SIZE  equ     0100h
         db      'J','F','V','9'
 .else
         db      'J','F','V','8'
+.endif
 .endif
 .endif
 .endif
@@ -93,6 +97,9 @@ EXTENSION_SIZE  equ     0100h
 
 start:
         di
+.ifdef FASTBOOT_V16
+        lxi     sp,03ff0h
+.else
 .ifdef FASTBOOT_V15
         ; V15 expands a larger 51K system from B000h.  Keep the loader stack
         ; below the compressed input at 4000h so decompression cannot overwrite
@@ -100,6 +107,7 @@ start:
         lxi     sp,03ff0h
 .else
         lxi     sp,0b3f0h
+.endif
 .endif
 .ifndef FASTBOOT_PROBE_SYNC
         mvi     a,0ffh
@@ -131,6 +139,17 @@ start:
         in      USARTDATA
 .endif
 
+.ifdef FASTBOOT_ROM_EXTENSION
+        ; The network-first C6 ROM copied the complete generic receive/decode
+        ; extension to 0300h before entering this core. C7 distinguishes this
+        ; wire contract from C4/C5, so the matching host sends the compressed
+        ; stream directly and no longer downloads executable loader code.
+        mvi     a,0c7h
+        out     USARTDATA
+        jmp     EXTENSION
+.endif
+
+.ifndef FASTBOOT_ROM_EXTENSION
 session:
         ; Extension packet: A5h, 3Ah, 256 bytes, Fletcher sum1, sum2.
 find_first:
@@ -199,6 +218,7 @@ rx:
         jz      rx
         in      USARTDATA
         ret
+.endif
 
 core_end:
         ; The bundle contract and cosim assert this at build time too.

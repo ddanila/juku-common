@@ -10,6 +10,9 @@
 .ifndef NATIVE_SERVICES
 NATIVE_SERVICES equ     0
 .endif
+.ifndef NETCONSOLE_BULK
+NETCONSOLE_BULK equ     0
+.endif
 
         cseg
         public  NCENA
@@ -24,6 +27,9 @@ if NATIVE_SERVICES
         public  NCCAPS
         public  NCCFG
 endif
+if NETCONSOLE_BULK
+        public  NCBULK
+endif
 
 USARTDATA      equ     008h
 USARTCTL       equ     009h
@@ -36,6 +42,10 @@ NC_STATUS      equ     024h
 NC_DIAG        equ     025h
 NC_CAPS        equ     026h
 NC_BOOT        equ     027h
+if NETCONSOLE_BULK
+NC_BULK        equ     028h
+NC_BULK_MAX    equ     32
+endif
 ; This native network-ROM profile fixes BIOS at BC00h. GENCPM relocates the
 ; SCB to BB9Ch, hence its canonical +58h clock field is runtime BBF4h.
 SCBDATE        equ     0bbf4h
@@ -145,6 +155,53 @@ NCOUTDONE:
         ret
 
 if NATIVE_SERVICES
+if NETCONSOLE_BULK
+; Send one bounded target-to-host byte span. HL points to 1..32 bytes and B is
+; its length. The variable request is JD/28/seq/count/data/checksum; the reply
+; retains the ordinary five-byte N4 acknowledgement and duplicate replay.
+; Local console output is independent, so a missing host remains best effort.
+NCBULK:
+        push    b
+        push    d
+        push    h
+        mov     a,b
+        ora     a
+        jz      NCBULKBAD
+        cpi     NC_BULK_MAX+1
+        jnc     NCBULKBAD
+        sta     NCBLEN
+        shld    NCBPTR
+        lda     NCEN
+        ora     a
+        jz      NCBULKOK
+        mvi     a,NC_BULK
+        sta     NCOP
+        call    NCBEGIN
+        lda     NCBLEN
+        call    NCSEND
+        lhld    NCBPTR
+        lda     NCBLEN
+        mov     d,a
+NCBULKSEND:
+        mov     a,m
+        call    NCSEND
+        inx     h
+        dcr     d
+        jnz     NCBULKSEND
+        call    NCFINISH
+        jmp     NCBULKRET
+NCBULKOK:
+        xra     a
+        jmp     NCBULKRET
+NCBULKBAD:
+        mvi     a,1
+NCBULKRET:
+        pop     h
+        pop     d
+        pop     b
+        ret
+endif
+
 ; CP/M 3 TIME transport. C=00h fetches the host clock; C=FFh publishes the
 ; SCB date/hour/minute as a session-only host offset. Preserve HL and DE as
 ; required by the System Guide. A=0 succeeds; A=1 leaves the SCB unchanged.
@@ -235,6 +292,9 @@ endif
 
 ; A=operation, NCARG=argument. Return zero for a valid status 0/2 response.
 NCCALL:sta     NCOP
+if NETCONSOLE_BULK
+        call    NCBEGIN
+else
         lda     NCSEQ
         inr     a
         sta     NCSEQ
@@ -249,6 +309,7 @@ NCCALL:sta     NCOP
         call    NCSEND
         lda     NCSEQ
         call    NCSEND
+endif
         lda     NCARG
         call    NCSEND
 if NATIVE_SERVICES
@@ -265,6 +326,9 @@ if NATIVE_SERVICES
         xra     a
 endif
         call    NCSEND
+if NETCONSOLE_BULK
+NCFINISH:
+endif
         mov     a,b
         call    NCTX
 
@@ -279,6 +343,27 @@ NCDRAIN:
         jnz     NCDRAIN
         mvi     a,034h
         out     USARTCTL       ; release the half-duplex transmitter
+if NETCONSOLE_BULK
+        jmp     NCSYNC
+
+; Start a checksummed request with operation already stored in NCOP.
+NCBEGIN:
+        lda     NCSEQ
+        inr     a
+        sta     NCSEQ
+        mvi     a,035h
+        out     USARTCTL       ; TxEN + RxE + error reset + RTS
+        mvi     b,0
+        mvi     a,'J'
+        call    NCSEND
+        mvi     a,'D'
+        call    NCSEND
+        lda     NCOP
+        call    NCSEND
+        lda     NCSEQ
+        call    NCSEND
+        ret
+endif
 
 NCSYNC:call    NCRX
         jc      NCFAIL
@@ -456,4 +541,8 @@ NCARG2:db      0
 NCARG3:db      0
 NCTBUF:ds      5
 NCCAPBUF:ds    4
+endif
+if NETCONSOLE_BULK
+NCBLEN: db      0
+NCBPTR: dw      0
 endif

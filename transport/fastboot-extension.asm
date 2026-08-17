@@ -41,7 +41,14 @@ SYSTEM_SIZE     equ     01a00h
 .endif
 .ifdef FASTBOOT_ZX0
 COMPRESSED      equ     04000h
+.ifdef FASTBOOT_CPM3_ROM
+COMPRESSED_LIMIT equ    02800h
+.else
 COMPRESSED_LIMIT equ    01800h
+.endif
+.ifdef FASTBOOT_V16
+PROTOCOL_VERSION equ    16
+.else
 .ifdef FASTBOOT_TIGHT
 .ifdef FASTBOOT_V15
 PROTOCOL_VERSION equ    15
@@ -57,6 +64,7 @@ rx              equ     016eh
 .endif
 .else
 PROTOCOL_VERSION equ    6
+.endif
 .endif
 .else
 .ifdef FASTBOOT_8N1
@@ -114,9 +122,15 @@ stream_header:
         call    tx
 .endif
 .else
+.ifdef FASTBOOT_V16
+        ; The generic ROM-resident extension has no patched fixed length, but
+        ; still acknowledges JZ before the host sends the dynamic length/body.
+        mvi     a,0c6h
+        call    tx
+.endif
         call    rx
         mov     b,a
-        cpi     COMPRESSED_LIMIT/256    ; reject > 6143 bytes
+        cpi     COMPRESSED_LIMIT/256    ; reject at/above configured page limit
         jnc     session
         call    rx
         mov     c,a
@@ -419,6 +433,11 @@ success_frame:
 
 extension_end:
 .ifdef FASTBOOT_ZX0
+.ifdef FASTBOOT_V16
+        .if     extension_end-0300h > 384
+        .error  "Fastboot v16 resident extension exceeds three records"
+        .endif
+.else
 .ifdef FASTBOOT_TIGHT
 .ifdef FASTBOOT_V15
         .if     extension_end-0300h > 640
@@ -433,6 +452,7 @@ extension_end:
         .if     extension_end-0300h > 256
         .error  "Fastboot v7 extension exceeds two records"
         .endif
+.endif
 .endif
 .endif
 .else

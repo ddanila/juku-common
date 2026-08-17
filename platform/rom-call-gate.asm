@@ -12,6 +12,30 @@ JCGMODEPORT     equ     006h
 
 ; Stable low-RAM vector table. Keep this order synchronized with rom-abi.inc.
 JCGINIT:        jmp     JCGINITIMPL
+.ifdef ROM_ABI_EXTENDED
+; ABI 1.2 uses one register-preserving dispatcher so three appended services
+; still fit below the fixed D700h framebuffer helper. The return address of
+; each CALL identifies its immutable vector slot.
+JCGCONINIT:     call    JCGDISPATCH
+JCGCONSTAT:     call    JCGDISPATCH
+JCGCONIN:       call    JCGDISPATCH
+JCGCONOUT:      call    JCGDISPATCH
+JCGSERINIT:     call    JCGDISPATCH
+JCGSERRX:       call    JCGDISPATCH
+JCGSERTX:       call    JCGDISPATCH
+JCGNETDISK:     call    JCGDISPATCH
+JCGKEYINIT:     call    JCGDISPATCH
+JCGKEYSCAN:     call    JCGDISPATCH
+JCGSOUND:       call    JCGDISPATCH
+JCGDIAG:        call    JCGDISPATCH
+JCGGETINFO:     call    JCGDISPATCH
+JCGCONFIG:      call    JCGDISPATCH
+JCGKEYREMAP:    call    JCGDISPATCH
+JCGBOOTPOLICY:  call    JCGDISPATCH
+JCGCONBLOCK:    call    JCGDISPATCH
+JCGNETMULTI:    call    JCGDISPATCH
+JCGKEYRAW:      call    JCGDISPATCH
+.else
 JCGCONINIT:     jmp     JCGCONINITIMPL
 JCGCONSTAT:     jmp     JCGCONSTATIMPL
 JCGCONIN:       jmp     JCGCONINIMPL
@@ -28,6 +52,7 @@ JCGGETINFO:     jmp     JCGGETINFOIMPL
 .ifdef ROM_ABI_LOCALE
 JCGCONFIG:      jmp     JCGCONFIGIMPL
 JCGKEYREMAP:    jmp     JCGKEYREMAPIMPL
+.endif
 .endif
 
 JCGINITIMPL:
@@ -75,6 +100,50 @@ JCGMODE1:
         pop     psw
         ret
 
+.ifdef ROM_ABI_EXTENDED
+; JCGDISPATCH is entered by CALL from a fixed three-byte vector. JCGMODE1
+; preserves the service inputs. XTHL then exposes the vector return address
+; while keeping the caller's original HL on the stack. The selected resident
+; target is installed into a low-RAM jump, all inputs are restored exactly,
+; and the synthetic vector return word is discarded before the tail jump.
+JCGDISPATCH:
+        call    JCGMODE1
+        xthl
+        push    psw
+        push    b
+        push    d
+        mov     a,l
+        sui     026h                    ; return after JCGCONINIT at D623h
+        lxi     h,JCGTARGETS
+JCGDISPATCH1:
+        ora     a
+        jz      JCGDISPATCH2
+        sui     3
+        inx     h
+        inx     h
+        jmp     JCGDISPATCH1
+JCGDISPATCH2:
+        mov     e,m
+        inx     h
+        mov     d,m
+        xchg
+        shld    JCGJUMP+1
+        pop     d
+        pop     b
+        pop     psw
+        xthl
+        inx     sp
+        inx     sp
+JCGJUMP:
+        jmp     0
+
+JCGTARGETS:
+        dw      JROMCONINIT,JROMCONSTAT,JROMCONIN,JROMCONOUT
+        dw      JROMSERINIT,JROMSERRX,JROMSERTX,JROMNETDISK
+        dw      JROMKEYINIT,JROMKEYSCAN,JROMSOUND,JROMDIAG,JROMGETINFO
+        dw      JROMCONFIG,JROMKEYREMAP,JROMBOOTPOLICY
+        dw      JROMCONBLOCK,JROMNETMULTI,JROMKEYRAW
+.else
 JCGCONINITIMPL: call JCGMODE1
                 jmp  JROMCONINIT
 JCGCONSTATIMPL: call JCGMODE1
@@ -106,6 +175,7 @@ JCGCONFIGIMPL:  call JCGMODE1
                 jmp  JROMCONFIG
 JCGKEYREMAPIMPL: call JCGMODE1
                 jmp  JROMKEYREMAP
+.endif
 .endif
 
 JCGREADY:       db      0

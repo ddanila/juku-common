@@ -15,6 +15,9 @@
 .ifdef RAMKEYREMAP
         public  RKSETREMAP
 .endif
+.ifdef ROM_ABI_EXTENDED
+        public  RKRAWSCAN
+.endif
 .endif
 
 KEYCOLPORT      equ     004h
@@ -107,6 +110,35 @@ RKCONFIG2:
         pop     d
         pop     b
         ret
+
+.ifdef ROM_ABI_EXTENDED
+; Return one instantaneous, untranslated matrix contact. Carry clear means
+; A=column 0..14 and B=the complete D26 port-B sample (encoder row plus
+; SHIFT/CTRL). Carry set means no ordinary key or modifier is active and
+; B=FFh. S21's configuration bit on columns 8..14 is deliberately ignored
+; when deciding whether a contact exists.
+RKRAWSCAN:
+        mvi     c,0
+RKRAWCOL:
+        mov     a,c
+        out     KEYCOLPORT
+        in      KEYROWPORT
+        mov     b,a
+        ani     0cfh                    ; CTRL, SHIFT, and encoder nibble
+        cpi     0cfh
+        jnz     RKRAWFOUND
+        inr     c
+        mov     a,c
+        cpi     15
+        jc      RKRAWCOL
+        mvi     b,0ffh
+        stc
+        ret
+RKRAWFOUND:
+        mov     a,c
+        ora     a                       ; clear carry
+        ret
+.endif
 
 ; Scan all columns and return one ASCII/control byte, or zero for no supported
 ; contact. The table is indexed as column*6 plus the drawing's encoder input.
