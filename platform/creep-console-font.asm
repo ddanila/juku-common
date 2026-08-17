@@ -1,6 +1,7 @@
 ; Creep-derived U+0020..U+007E, adapted to five by seven pixels.
 ; MIT license: LICENSE-CREEP; Copyright (c) 2014 Romeo Van Snick.
 ; release BDF SHA-256: 747692a16464fa644f763f1891d43ab1712c598104cc4721c4338cb6ca6e7aa8
+.ifndef CREEP_PSEUDO_ONLY
 RAMFONT80:
         db      000h,000h,000h,000h,000h,000h,000h ; 20
         db      020h,020h,020h,020h,020h,000h,020h ; 21
@@ -97,9 +98,16 @@ RAMFONT80:
         db      020h,020h,020h,020h,020h,020h,020h ; 7C
         db      0c0h,020h,020h,010h,020h,020h,0c0h ; 7D
         db      000h,000h,000h,000h,050h,0a0h,000h ; 7E
+.endif
 
 ; CP437 UI subset: shade, edge-connected single boxes, and blocks.
 .ifndef CREEP_ASCII_ONLY
+CREEP_INCLUDE_PSEUDO equ 1
+.endif
+.ifdef CREEP_PSEUDO_ONLY
+CREEP_INCLUDE_PSEUDO equ 1
+.endif
+.ifdef CREEP_INCLUDE_PSEUDO
 RAMFONTPSEUDOCODES:
         db      0b0h,0b3h,0b4h,0bfh,0c0h,0c1h,0c2h,0c3h,0c4h,0c5h,0d9h,0dah,0dbh,0dch,0ddh,0deh,0dfh
 RAMFONTPSEUDO:

@@ -97,6 +97,18 @@ RCPRINTABLE:
         jc      RCOUTDONE
         cpi     07fh
         jc      RCCHAROK
+.ifdef ROM_ABI_LOCALE
+        mov     a,e
+        call    RCFONTLOOKUP
+        jc      RCCHARQUESTION
+        push    psw                     ; row count from sparse-bank lookup
+        push    d                       ; RCCELLADDR uses DE as scratch
+        call    RCCELLADDR
+        pop     d
+        pop     psw
+        jmp     RCCHARPTR
+RCCHARQUESTION:
+.endif
         mvi     e,'?'
 RCCHAROK:
         mov     a,e
@@ -117,9 +129,17 @@ RCCHAROK:
         lxi     d,RAMFONT80
         dad     d
         xchg
+.ifdef ROM_ABI_LOCALE
+        mvi     a,7
+RCCHARPTR:
+        sta     RCFONTROWS
+        lxi     h,RCPIXELS
+        sta     RCWORK
+.else
         lxi     h,RCPIXELS
         mvi     a,7
         sta     RCWORK
+.endif
 RCPREPROW:
         ldax    d
         inx     d
@@ -128,8 +148,14 @@ RCPREPROW:
         dcr     a
         sta     RCWORK
         jnz     RCPREPROW
+.ifdef ROM_ABI_LOCALE
+        lda     RCFONTROWS
+        cpi     8
+        jz      RCPREPDONE
+.endif
         xra     a
         call    RCPREPBYTE
+RCPREPDONE:
         mvi     a,8
         sta     RCROWS
         mvi     a,RCOPDRAW

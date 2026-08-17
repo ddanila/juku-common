@@ -1,4 +1,4 @@
-# Juku network-first ROM ABI 1.0
+# Juku network-first ROM ABI 1
 
 The ABI exposes stable Juku hardware services from the 10 KiB ROM window
 mapped at `D800h..FFFFh`. It is intentionally independent of CP/M 2.2 or 3;
@@ -49,6 +49,18 @@ forever.
 | `JCGSOUND` / `FF41h` | A selects a built-in bounded cue; A=0 is silence, A=1 the diagnostic phrase. |
 | `JCGDIAG` / `FF44h` | A selects a documented mechanism, HL points to its argument/result block; A is the structured result. Destructive tests are never implicit. |
 | `JCGGETINFO` / `FF47h` | Returns HL=manifest address and DE=feature bits; no other state changes. |
+
+ABI 1.1 appends two optional vectors when `JROMFLOCALE`/`JROMFKEYREMAP` are
+advertised:
+
+| gate / ROM vector | contract |
+| --- | --- |
+| `JCGCONFIG` / `FF4Ah` | Return the reset-latched raw S21 byte in A, decoded video mode in B, and locale in C. Locale is bits 4:3: English, Estonian, Russian CP866, or English/user fallback. |
+| `JCGKEYREMAP` / `FF4Dh` | A is zero to disable remapping or 1..4, and HL points to that many input/output byte pairs. The bounded table is copied into resident state. Returns A=0. |
+
+The ABI 1.0 vectors and behavior are unchanged. A 1.0 consumer accepts a 1.1
+ROM and simply ignores the appended vectors; a 1.1 consumer rejects an older
+ROM before calling them.
 
 NetDisk request version 1 is a 10-byte caller-owned block: version, operation,
 drive, little-endian track, sector, little-endian 128-byte DMA pointer, and

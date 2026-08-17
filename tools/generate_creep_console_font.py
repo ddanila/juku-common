@@ -175,6 +175,7 @@ def outputs(source: Path) -> tuple[str, str]:
         "; Creep-derived U+0020..U+007E, adapted to five by seven pixels.",
         "; MIT license: LICENSE-CREEP; Copyright (c) 2014 Romeo Van Snick.",
         f"; release BDF SHA-256: {SOURCE_SHA256}",
+        ".ifndef CREEP_PSEUDO_ONLY",
         "RAMFONT80:",
     ]
     for code in range(FIRST, LAST + 1):
@@ -183,9 +184,16 @@ def outputs(source: Path) -> tuple[str, str]:
         values = ",".join(f"0{value:02x}h" for value in encode(rows))
         assembly.append(f"        db      {values} ; {code:02X}")
     assembly.extend([
+        ".endif",
         "",
         "; CP437 UI subset: shade, edge-connected single boxes, and blocks.",
         ".ifndef CREEP_ASCII_ONLY",
+        "CREEP_INCLUDE_PSEUDO equ 1",
+        ".endif",
+        ".ifdef CREEP_PSEUDO_ONLY",
+        "CREEP_INCLUDE_PSEUDO equ 1",
+        ".endif",
+        ".ifdef CREEP_INCLUDE_PSEUDO",
         "RAMFONTPSEUDOCODES:",
         "        db      " + ",".join(f"0{code:02x}h" for code in PSEUDO_CODES),
         "RAMFONTPSEUDO:",

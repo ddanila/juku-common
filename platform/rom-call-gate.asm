@@ -25,6 +25,10 @@ JCGKEYSCAN:     jmp     JCGKEYSCANIMPL
 JCGSOUND:       jmp     JCGSOUNDIMPL
 JCGDIAG:        jmp     JCGDIAGIMPL
 JCGGETINFO:     jmp     JCGGETINFOIMPL
+.ifdef ROM_ABI_LOCALE
+JCGCONFIG:      jmp     JCGCONFIGIMPL
+JCGKEYREMAP:    jmp     JCGKEYREMAPIMPL
+.endif
 
 JCGINITIMPL:
         di
@@ -97,6 +101,12 @@ JCGDIAGIMPL:    call JCGMODE1
                 jmp  JROMDIAG
 JCGGETINFOIMPL: call JCGMODE1
                 jmp  JROMGETINFO
+.ifdef ROM_ABI_LOCALE
+JCGCONFIGIMPL:  call JCGMODE1
+                jmp  JROMCONFIG
+JCGKEYREMAPIMPL: call JCGMODE1
+                jmp  JROMKEYREMAP
+.endif
 
 JCGREADY:       db      0
 JCGSIGNATURE:   db      'J','U','K','U','A','B','I',0

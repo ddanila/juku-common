@@ -16,6 +16,9 @@ RCSHIFT         equ     RCOP+026
 RCCURVISIBLE    equ     RCOP+027
 RCCURCOUNT      equ     RCOP+028
 RCWORK          equ     RCOP+030
+.ifdef ROM_ABI_LOCALE
+RCFONTROWS      equ     RCOP+032
+.endif
 
 RCOPCLEAR       equ     0
 RCOPSCROLL      equ     1

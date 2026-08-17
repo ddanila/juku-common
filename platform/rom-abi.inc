@@ -7,7 +7,11 @@
 
 JROMABIBASE     equ     0ff00h
 JROMABIMAJOR    equ     1
+.ifdef ROM_ABI_LOCALE
+JROMABIMINOR    equ     1
+.else
 JROMABIMINOR    equ     0
+.endif
 JROMABISIZE     equ     0100h
 
 ; Manifest at FF00h. The first eight bytes are "JUKUABI",00h.
@@ -30,6 +34,8 @@ JROMFNETDISK    equ     0008h
 JROMFSOUND      equ     0010h
 JROMFDIAG       equ     0020h
 JROMFNETCON     equ     0040h
+JROMFLOCALE     equ     0080h
+JROMFKEYREMAP   equ     0100h
 
 ; Fixed three-byte JMP vectors. ABI minor versions may append behavior but
 ; must never move or change an existing vector's calling convention.
@@ -47,6 +53,10 @@ JROMKEYSCAN     equ     JROMABIBASE+03eh
 JROMSOUND       equ     JROMABIBASE+041h
 JROMDIAG        equ     JROMABIBASE+044h
 JROMGETINFO     equ     JROMABIBASE+047h
+.ifdef ROM_ABI_LOCALE
+JROMCONFIG      equ     JROMABIBASE+04ah
+JROMKEYREMAP    equ     JROMABIBASE+04dh
+.endif
 
 ; JCGNETDISK request v1 (10 bytes at caller-owned low RAM).
 JROMNETREQBYTES equ     10
@@ -85,3 +95,7 @@ JCGKEYSCANADDR  equ     JROMGATEBASE+01eh
 JCGSOUNDADDR    equ     JROMGATEBASE+021h
 JCGDIAGADDR     equ     JROMGATEBASE+024h
 JCGGETINFOADDR  equ     JROMGATEBASE+027h
+.ifdef ROM_ABI_LOCALE
+JCGCONFIGADDR   equ     JROMGATEBASE+02ah
+JCGKEYREMAPADDR equ     JROMGATEBASE+02dh
+.endif
