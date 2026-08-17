@@ -51,10 +51,13 @@ implements the CP/M Plus GET/SET clock contract without changing the host OS
 clock. `NCPUBLISH` sends one idempotent status tuple (raw S21, decoded video
 mode, feature flags, and last clock result) so target and host diagnostics
 report the same configuration without adding unsolicited boot traffic.
+`NCDIAG` uses the same preserved-register and bounded-turn contract for a
+suite/pass/fail/flags result, allowing unattended diagnostics without a raw
+USART owner or a disk-starving stream.
 The native profile also keeps saturating reconnect and last-failure fields at
-C5FCh/C5FDh in its documented workspace. They change only after a bounded N4 failure
-and a later successful reprobe; initial capability setup is not miscounted as
-a reconnect.
+C5FCh/C5FDh in its documented workspace. They change only after a bounded N4
+failure and a later successful reprobe; initial capability setup is not
+miscounted as a reconnect.
 
 Except for the separately attributed fonts, these files are Copyright (c)
 2026 Danila Sukharev and use `../LICENSE-BSD-2-Clause`.

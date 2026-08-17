@@ -19,6 +19,7 @@ NATIVE_SERVICES equ     0
 if NATIVE_SERVICES
         public  NCTIME
         public  NCPUBLISH
+        public  NCDIAG
 endif
 
 USARTDATA      equ     008h
@@ -29,6 +30,7 @@ if NATIVE_SERVICES
 NC_TIME_GET    equ     022h
 NC_TIME_SET    equ     023h
 NC_STATUS      equ     024h
+NC_DIAG        equ     025h
 ; This native network-ROM profile fixes BIOS at BC00h. GENCPM relocates the
 ; SCB to BB9Ch, hence its canonical +58h clock field is runtime BBF4h.
 SCBDATE        equ     0bbf4h
@@ -162,8 +164,16 @@ NCTIMERET:
 ; status. This is best-effort observability: preserve every caller register
 ; and leave host loss to the existing NCCALL recovery path.
 NCPUBLISH:
-        push    psw
         push    b
+        mvi     c,NC_STATUS
+        jmp     NCPUBLISH1
+; Publish a machine-readable diagnostic tuple. A=suite, B=pass mask,
+; D=failure mask, E=flags. It shares the status publisher's bounded turn.
+NCDIAG:
+        push    b
+        mvi     c,NC_DIAG
+NCPUBLISH1:
+        push    psw
         push    d
         push    h
         sta     NCARG
@@ -173,12 +183,12 @@ NCPUBLISH:
         sta     NCARG2
         mov     a,e
         sta     NCARG3
-        mvi     a,NC_STATUS
+        mov     a,c
         call    NCCALL
         pop     h
         pop     d
-        pop     b
         pop     psw
+        pop     b
         ret
 endif
 
