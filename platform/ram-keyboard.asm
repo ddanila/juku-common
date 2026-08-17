@@ -12,6 +12,9 @@
         public  RKSTAT
         public  RKIN
         public  RKCONFIG
+.ifdef RAMKEYREMAP
+        public  RKSETREMAP
+.endif
 .endif
 
 KEYCOLPORT      equ     004h
@@ -22,6 +25,9 @@ RKINIT:
         sta     RAMKEYDOWN
         sta     RAMKEYREADY
         sta     RAMKEYCHAR
+.ifdef RAMKEYREMAP
+        sta     RAMKEYREMAPCOUNT
+.endif
         ret
 
 ; Return FFh if a translated key is pending, zero otherwise. A physical key
@@ -190,10 +196,62 @@ RAMKEYSHIFTED:
 RAMKEYBASE:
         mov     a,b
 RAMKEYDONE:
+.ifdef RAMKEYREMAP
+        call    RAMKEYAPPLY
+.endif
         pop     h
         pop     d
         pop     b
         ret
+
+.ifdef RAMKEYREMAP
+; Install up to four byte-to-byte substitutions. A is the pair count and HL
+; points to interleaved input/output bytes. Zero disables remapping. The small
+; copied table remains valid after a transient configuration utility exits.
+RKSETREMAP:
+        cpi     5
+        jc      RKSETREMAP1
+        mvi     a,4
+RKSETREMAP1:
+        sta     RAMKEYREMAPCOUNT
+        ora     a
+        rz
+        mov     b,a
+        lxi     d,RAMKEYREMAPTABLE
+RKSETREMAP2:
+        mov     a,m
+        stax    d
+        inx     h
+        inx     d
+        mov     a,m
+        stax    d
+        inx     h
+        inx     d
+        dcr     b
+        jnz     RKSETREMAP2
+        ret
+
+; Apply the first matching substitution and otherwise return A unchanged.
+RAMKEYAPPLY:
+        mov     b,a
+        lda     RAMKEYREMAPCOUNT
+        ora     a
+        mov     c,a
+        mov     a,b
+        rz
+        lxi     h,RAMKEYREMAPTABLE
+RAMKEYAPPLY1:
+        cmp     m
+        inx     h
+        jz      RAMKEYREMAPPED
+        inx     h
+        dcr     c
+        jnz     RAMKEYAPPLY1
+        ret
+RAMKEYREMAPPED:
+        mov     a,m
+        ret
+.endif
 
 ; Rows are encoder inputs 0..5 (factory rows 5,4,6,2,1,3).
 RAMKEYTABLE:
@@ -231,6 +289,10 @@ ROMKEYEND:
 RAMKEYDOWN:     db      0
 RAMKEYREADY:    db      0
 RAMKEYCHAR:     db      0
+.ifdef RAMKEYREMAP
+RAMKEYREMAPCOUNT: db    0
+RAMKEYREMAPTABLE: ds    8
+.endif
 
         end
 .endif

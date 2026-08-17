@@ -17,7 +17,9 @@ CP/M Plus Juku port:
 - `ram-keyboard.asm`: interrupt-independent matrix keyboard driver; defining
   `ROMKEYBOARD` plus `ROMKEYSTATEBASE` reuses the same code/tables in resident
   ROM while keeping its three mutable bytes in low RAM; `RKCONFIG` returns the
-  raw eight-position S21 configuration byte;
+  raw eight-position S21 configuration byte. `RAMKEYREMAP` optionally exposes
+  `RKSETREMAP`, a persistent four-pair substitution table for dead or unusual
+  per-machine keys;
 - `netdisk-v3.asm`: resilient three-record Janet read-ahead client;
 - `netconsole.asm`: optional resilient remote console;
 - `rom-abi.inc`: fixed network-first ROM manifest, feature, vector, and
@@ -162,3 +164,9 @@ The same cold-start sample selects the character bank with S21 bits 4:3:
 
 Only the sparse extension tables change. Control handling, cell layout,
 scrolling, cursor, and pixel painting remain one renderer.
+
+An all-RAM consumer that defines `RAMKEYREMAP` can install zero to four
+input/output byte pairs with `RKSETREMAP`. The driver copies the pairs into
+resident state, so the program that selected the per-machine workaround need
+not remain loaded. A future ROM ABI minor can expose the same bounded facility
+without changing keyboard scan or translation semantics.
