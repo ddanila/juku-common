@@ -139,7 +139,9 @@ A transitional RAM framebuffer console that runs beside resident ROM defines
 the next resident service remains callable. A fully RAM-owned BIOS omits it
 and retains mode 3.
 
-For an all-RAM consumer, S21 bits 2:1 select the display at console startup:
+For an all-RAM consumer, and for a resident ABI 1.1 ROM that advertises the
+locale/configuration feature, reset-latched S21 bits 2:1 select the display at
+console startup. ABI 1.0 retains its byte-exact fixed 80x24 console:
 
 | bits 2:1 | text | cell | raster stride |
 | --- | --- | --- | --- |

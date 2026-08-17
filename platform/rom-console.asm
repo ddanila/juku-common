@@ -1,4 +1,4 @@
-; Resident MODX-compatible 80x24 console for the network-first Juku ROM.
+; Resident text console for the network-first Juku ROM.
 ; Copyright (c) 2026 Danila Sukharev
 ; BSD-2-Clause; see ../LICENSE-BSD-2-Clause.
 ;
@@ -23,7 +23,11 @@ ROMCONINIT:
         sta     RCESC
         sta     RCCURVISIBLE
         call    RCCURSORRELOAD
+.ifdef ROM_ABI_LOCALE
+        call    RCSETVIDEO
+.else
         call    RCMODXVIDEO
+.endif
         mvi     a,RCOPCLEAR
         sta     RCOP
         call    JROMHELPENTRY
@@ -164,7 +168,15 @@ RCPREPDONE:
 
         lda     RCCOL
         inr     a
+.ifdef ROM_ABI_LOCALE
+        mov     c,a
+        lda     RCCOLS
+        mov     b,a
+        mov     a,c
+        cmp     b
+.else
         cpi     COLS
+.endif
         jc      RCSAVECOL
         xra     a
         sta     RCCOL
@@ -184,22 +196,43 @@ RCOUTDONE:
 RCNEWLINE:
         lda     RCROW
         inr     a
+.ifdef ROM_ABI_LOCALE
+        mov     c,a
+        lda     RCTEXTROWS
+        mov     b,a
+        mov     a,c
+        cmp     b
+.else
         cpi     ROWS
+.endif
         jc      RCSAVEROW
         mvi     a,RCOPSCROLL
         sta     RCOP
         call    JROMHELPENTRY
+.ifdef ROM_ABI_LOCALE
+        lda     RCTEXTROWS
+        dcr     a
+.else
         mvi     a,ROWS-1
+.endif
 RCSAVEROW:
         sta     RCROW
         ret
 
 ; Publish packed cell address and the shifted two-byte preservation mask.
 RCCELLADDR:
+.ifdef ROM_ABI_LOCALE
+        lhld    RCROWBYTES
+        xchg
         lxi     h,0d800h
+.else
+        lxi     h,0d800h
+.endif
         lda     RCROW
         mov     b,a
+.ifndef ROM_ABI_LOCALE
         lxi     d,ROWBYTES
+.endif
 RCROWADDR:
         mov     a,b
         ora     a
@@ -210,6 +243,17 @@ RCROWADDR:
 RCROWREADY:
         push    h
         lda     RCCOL
+.ifdef ROM_ABI_LOCALE
+        mov     e,a
+        mvi     d,0
+        lda     RCCELLWIDTH
+        mov     b,a
+        lxi     h,0
+RCCOLMUL:
+        dad     d
+        dcr     b
+        jnz     RCCOLMUL
+.else
         mov     l,a
         mvi     h,0
         mov     e,l
@@ -217,6 +261,7 @@ RCROWREADY:
         dad     h
         dad     h
         dad     d
+.endif
         mov     a,l
         ani     7
         sta     RCSHIFT
@@ -236,7 +281,12 @@ RCBYTEOFF:
         dad     d
         shld    RCADDR
 
+.ifdef ROM_ABI_LOCALE
+        lda     RCCELLMASK
+        mov     b,a
+.else
         mvi     b,0f8h
+.endif
         mvi     c,0
         call    RCSHIFTBC
         mov     a,b
@@ -280,8 +330,15 @@ RCSHIFTBC1:
 RCCURSORPREP:
         push    psw
         call    RCCELLADDR
+.ifdef ROM_ABI_LOCALE
+        lhld    RCCURSORLINE
+        mov     b,h
+        mov     c,l
+        lhld    RCADDR
+.else
         lhld    RCADDR
         lxi     b,CURSORLINE
+.endif
         dad     b
         shld    RCADDR
         pop     psw
@@ -298,7 +355,11 @@ RCCURSORSHOW:
         lda     RCCURVISIBLE
         ora     a
         rnz
+.ifdef ROM_ABI_LOCALE
+        lda     RCCELLMASK
+.else
         mvi     a,0f8h
+.endif
         call    RCCURSORPREP
         mvi     a,1
         sta     RCCURVISIBLE

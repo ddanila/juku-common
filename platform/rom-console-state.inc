@@ -18,6 +18,17 @@ RCCURCOUNT      equ     RCOP+028
 RCWORK          equ     RCOP+030
 .ifdef ROM_ABI_LOCALE
 RCFONTROWS      equ     RCOP+032
+RCVIDMODE       equ     RCOP+02bh
+RCCOLS          equ     RCOP+02ch
+RCTEXTROWS      equ     RCOP+02dh
+RCCELLWIDTH     equ     RCOP+02eh
+RCCELLHEIGHT    equ     RCOP+02fh
+RCCELLMASK      equ     RCOP+030h
+RCVIDSTEP       equ     RCOP+031h        ; byte stride minus one for helper
+RCROWBYTES      equ     RCOP+032h
+RCCURSORLINE    equ     RCOP+034h
+RCSCROLLBYTES   equ     RCOP+036h
+RCSCROLLSOURCE  equ     RCOP+038h
 .endif
 
 RCOPCLEAR       equ     0

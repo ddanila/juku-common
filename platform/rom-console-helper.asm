@@ -53,7 +53,13 @@ RCHELP_DRAW1:
         ora     b
         mov     m,a
         inx     d
+.ifdef ROM_ABI_LOCALE
+        lda     RCVIDSTEP
+        mov     c,a
+        mvi     b,0
+.else
         lxi     b,VIDSTRIDE-1
+.endif
         dad     b
         lda     RCROWS
         dcr     a
@@ -62,9 +68,18 @@ RCHELP_DRAW1:
         jmp     RCHELP_DONE
 
 RCHELP_SCROLL:
+.ifdef ROM_ABI_LOCALE
+        lhld    RCSCROLLSOURCE
+        xchg
+        lhld    RCSCROLLBYTES
+        mov     b,h
+        mov     c,l
+        lxi     h,VRAM
+.else
         lxi     h,VRAM
         lxi     d,VRAM+ROWBYTES
         lxi     b,SCROLLBYTES
+.endif
 RCHELP_COPY:
         ldax    d
         mov     m,a
@@ -74,7 +89,14 @@ RCHELP_COPY:
         mov     a,b
         ora     c
         jnz     RCHELP_COPY
+.ifdef ROM_ABI_LOCALE
+        ; Every supported text row is 256..511 bytes, so its high byte is 1.
+        lda     RCROWBYTES
+        mov     c,a
+        mvi     b,1
+.else
         lxi     b,ROWBYTES
+.endif
         jmp     RCHELP_ZERO
 
 RCHELP_CLEAR:

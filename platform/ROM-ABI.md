@@ -36,7 +36,7 @@ forever.
 
 | gate / ROM vector | contract |
 | --- | --- |
-| `JCGCONINIT` / `FF23h` | Initialize MODX timing, clear the screen, reset position/cursor. `A=0` success. |
+| `JCGCONINIT` / `FF23h` | Initialize console timing, clear the screen, and reset position/cursor. ABI 1.0 uses fixed 80x24 MODX timing; ABI 1.1 uses reset-latched S21 bits 2:1 for 40x24, 53x24, 64x20, or 80x24. `A=0` success. |
 | `JCGCONSTAT` / `FF26h` | `A=00h` no key, `A=FFh` key ready; advances the cursor blink. |
 | `JCGCONIN` / `FF29h` | Bounded/local blocking input under the polled platform contract; returns character in A. |
 | `JCGCONOUT` / `FF2Ch` | Input A is one character; supports CR/LF/backspace and `ESC L`; returns after local pixels are committed. |
@@ -61,6 +61,11 @@ advertised:
 The ABI 1.0 vectors and behavior are unchanged. A 1.0 consumer accepts a 1.1
 ROM and simply ignores the appended vectors; a 1.1 consumer rejects an older
 ROM before calling them.
+
+The ABI 1.1 console keeps the same resident text policy in every geometry.
+Its copied mode-3 helper expands from 119 to the full 128-byte reserved helper
+window so row stride, scroll extent, packed cell width, and cursor scanline
+follow the latched mode without consuming operating-system RAM elsewhere.
 
 `FF50h` is the ABI 1.1 ROM's internal reset-handoff vector. Boot-only code
 jumps there after changing the memory overlay, avoiding non-relocatable branch
