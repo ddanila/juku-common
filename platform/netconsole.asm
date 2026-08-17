@@ -21,6 +21,7 @@ if NATIVE_SERVICES
         public  NCPUBLISH
         public  NCDIAG
         public  NCCAPS
+        public  NCCFG
 endif
 
 USARTDATA      equ     008h
@@ -56,6 +57,20 @@ if NATIVE_SERVICES
         sta     NCLASTFAIL
 endif
         ret
+
+if NATIVE_SERVICES
+; Apply the explicit host feature byte returned by NCCAPS. Bit 0 is N4
+; console. A host which explicitly lacks it disables periodic reprobes; an
+; older host which rejects NCCAPS never calls this routine and retains the
+; legacy bounded discovery behavior.
+NCCFG: ani     1
+        jnz     NCENA
+        sta     NCPRES
+        sta     NCEN
+        sta     NCHAVE
+        sta     NCBACK
+        ret
+endif
 
 ; Return FFh when a remote byte is cached, otherwise zero. Preserve BC/DE/HL.
 NCSTAT:

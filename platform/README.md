@@ -57,7 +57,10 @@ USART owner or a disk-starving stream.
 `NCCAPS` performs an explicit, repeatable operation-26h query and returns the
 host's four-byte NetDisk protocol, maximum read-ahead, feature, and drive-count
 record. This is the runtime contract; the earlier N3/N4 startup marker remains
-only a synchronization hint.
+only a synchronization hint. A native consumer passes the returned feature
+byte to `NCCFG`: an explicit no-console result disables otherwise pointless
+periodic N4 reprobes, while rejection by an older host retains the bounded
+legacy discovery behavior.
 The native profile also keeps saturating reconnect and last-failure fields at
 C65Ch/C65Dh in its documented workspace. They change only after a bounded N4
 failure and a later successful reprobe; initial capability setup is not
