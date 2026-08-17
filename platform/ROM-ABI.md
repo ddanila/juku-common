@@ -92,6 +92,12 @@ The request block retains CP/M policy in the consumer while resident ROM owns
 framing, retry, cache coherence, and the shared serial path. Feature bits
 advertise only implemented services.
 
+The ABI 1.1 C5 implementation retains independent A:/B: validity and buffer
+metadata when the caller supplies distinct cache pointers. A caller may still
+reuse one pointer for both drives: an alias check invalidates the other drive
+before the shared storage can be overwritten, so every ABI 1.0 consumer keeps
+the original safe single-cache semantics.
+
 ## Compatibility rules
 
 - Major changes may change calling conventions and are rejected by the gate.

@@ -52,9 +52,16 @@ SLOTSIZE       equ     131
 N3ENA: sta     N3MODE
 N3INV: xra     a
         sta     N3COUNT
+.ifdef ROMNETDISK_PER_DRIVE
+        sta     N3PDCOUNT0
+        sta     N3PDCOUNT1
+.endif
         ret
 
 N3READ:
+.ifdef ROMNETDISK_PER_DRIVE
+        call    N3PDLOAD
+.endif
         lda     N3MODE
         cpi     3
         jz      N3LOOK
@@ -313,10 +320,17 @@ N3CP1: mov     a,m
         dcr     b
         jnz     N3CP1
 N3DONE:
+.ifdef ROMNETDISK_PER_DRIVE
+        call    N3PDSAVE
+.endif
         xra     a
         ret
 N3ERROR:
+.ifdef ROMNETDISK_PER_DRIVE
+        call    N3PDCLEAR
+.else
         call    N3INV
+.endif
         mvi     a,1
         ret
 
@@ -330,10 +344,132 @@ N3BAD: lda     N3TRIES
 ; V3 synchronous write-through reuses the CRC reply and retry state machine.
 ; Invalidate first so an uncertain result can never expose stale cached data.
 N3WRITE:
+.ifdef ROMNETDISK_PER_DRIVE
+        call    N3PDLOAD
+        call    N3PDCLEAR
+.else
         call    N3INV
+.endif
         mvi     a,DKWA
         sta     N3OP
         jmp     N3START
+.endif
+
+.ifdef ROMNETDISK_PER_DRIVE
+; Load/save one three-record validity count per drive. Each drive also owns a
+; remembered cache pointer. If two consumers alias the same buffer, selecting
+; either drive invalidates the other count before that buffer can be reused;
+; old ABI consumers therefore retain safe single-cache behavior.
+N3PDLOAD:
+        lda     SEKDSK
+        ora     a
+        jz      N3PDLOAD0
+        cpi     1
+        jz      N3PDLOAD1
+        sta     N3DRIVE
+        xra     a
+        sta     N3COUNT
+        ret
+N3PDLOAD0:
+        sta     N3DRIVE
+        lhld    N3CACHE
+        xchg
+        lhld    N3PDPTR1
+        mov     a,h
+        ora     l
+        jz      N3PDCHECK0
+        mov     a,h
+        cmp     d
+        jnz     N3PDCHECK0
+        mov     a,l
+        cmp     e
+        jnz     N3PDCHECK0
+        xra     a
+        sta     N3PDCOUNT1
+N3PDCHECK0:
+        lhld    N3PDPTR0
+        mov     a,h
+        cmp     d
+        jnz     N3PDNEW0
+        mov     a,l
+        cmp     e
+        jnz     N3PDNEW0
+        lda     N3PDCOUNT0
+        sta     N3COUNT
+        ret
+N3PDNEW0:
+        mov     h,d
+        mov     l,e
+        shld    N3PDPTR0
+        xra     a
+        sta     N3PDCOUNT0
+        sta     N3COUNT
+        ret
+N3PDLOAD1:
+        sta     N3DRIVE
+        lhld    N3CACHE
+        xchg
+        lhld    N3PDPTR0
+        mov     a,h
+        ora     l
+        jz      N3PDCHECK1
+        mov     a,h
+        cmp     d
+        jnz     N3PDCHECK1
+        mov     a,l
+        cmp     e
+        jnz     N3PDCHECK1
+        xra     a
+        sta     N3PDCOUNT0
+N3PDCHECK1:
+        lhld    N3PDPTR1
+        mov     a,h
+        cmp     d
+        jnz     N3PDNEW1
+        mov     a,l
+        cmp     e
+        jnz     N3PDNEW1
+        lda     N3PDCOUNT1
+        sta     N3COUNT
+        ret
+N3PDNEW1:
+        mov     h,d
+        mov     l,e
+        shld    N3PDPTR1
+        xra     a
+        sta     N3PDCOUNT1
+        sta     N3COUNT
+        ret
+
+N3PDSAVE:
+        lda     SEKDSK
+        ora     a
+        jz      N3PDSAVE0
+        cpi     1
+        rnz
+        lda     N3COUNT
+        sta     N3PDCOUNT1
+        ret
+N3PDSAVE0:
+        lda     N3COUNT
+        sta     N3PDCOUNT0
+        ret
+
+N3PDCLEAR:
+        xra     a
+        sta     N3COUNT
+        lda     SEKDSK
+        ora     a
+        jz      N3PDCLEAR0
+        cpi     1
+        rnz
+        xra     a
+        sta     N3PDCOUNT1
+        ret
+N3PDCLEAR0:
+        xra     a
+        sta     N3PDCOUNT0
+        ret
 .endif
 
 N3SEND:mov     c,a
@@ -430,6 +566,12 @@ N3PREFIX       equ     ROMNETSTATEBASE+11
 N3TRIES        equ     ROMNETSTATEBASE+12
 N3CACHE        equ     ROMNETSTATEBASE+13
 N3OP           equ     ROMNETSTATEBASE+15
+.ifdef ROMNETDISK_PER_DRIVE
+N3PDCOUNT0     equ     ROMNETDRIVESTATEBASE
+N3PDCOUNT1     equ     ROMNETDRIVESTATEBASE+1
+N3PDPTR0       equ     ROMNETDRIVESTATEBASE+2
+N3PDPTR1       equ     ROMNETDRIVESTATEBASE+4
+.endif
 ROMNETEND:
 .else
 N3MODE: db      1
