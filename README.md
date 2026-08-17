@@ -5,8 +5,11 @@ Small, proven building blocks shared by Juku software projects.
 `diag/` contains diagnostics which can run in both bare-metal firmware and
 CP/M programs. `music/` contains shared pitch/rhythm data for audible
 diagnostic applications. `platform/` contains the Juku-owned RAM console,
-polled keyboard, NetDisk-v3, and remote-console components used by more than
-one operating-system port. `transport/` contains the common direct-fastboot
+polled keyboard, NetDisk-v3, remote-console, and optional CP/M Plus host-clock
+transport used by more than one operating-system port. Clock GET commits its
+five-byte SCB value only after a complete checksummed reply; SET is a
+host-session offset and never changes the host OS clock. `transport/` contains
+the common direct-fastboot
 core and extension. Operating-system policy, memory maps, BIOS entry tables,
 and build products remain in their consuming repositories.
 

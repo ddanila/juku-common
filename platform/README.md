@@ -48,6 +48,27 @@ uses one bounded remote poll per idle status call while leaving the default
 turnaround used by NetDisk v3. A longer 400-iteration drain loses the start of
 a reply sent after the host's 2 ms guard at 19,200 baud.
 
+Defining `NATIVE_SERVICES` adds the optional NetDisk-v3 service transports.
+`NCTIME`
+implements the CP/M Plus GET/SET clock contract without changing the host OS
+clock. `NCPUBLISH` sends one idempotent status tuple (raw S21, decoded video
+mode, feature flags, and last clock result) so target and host diagnostics
+report the same configuration without adding unsolicited boot traffic.
+`NCDIAG` uses the same preserved-register and bounded-turn contract for a
+suite/pass/fail/flags result, allowing unattended diagnostics without a raw
+USART owner or a disk-starving stream.
+`NCCAPS` performs an explicit, repeatable operation-26h query and returns the
+host's four-byte NetDisk protocol, maximum read-ahead, feature, and drive-count
+record. This is the runtime contract; the earlier N3/N4 startup marker remains
+only a synchronization hint. A native consumer passes the returned feature
+byte to `NCCFG`: an explicit no-console result disables otherwise pointless
+periodic N4 reprobes, while rejection by an older host retains the bounded
+legacy discovery behavior.
+The native profile also keeps saturating reconnect and last-failure fields at
+C65Ch/C65Dh in its documented workspace. They change only after a bounded N4
+failure and a later successful reprobe; initial capability setup is not
+miscounted as a reconnect.
+
 Except for the separately attributed fonts, these files are Copyright (c)
 2026 Danila Sukharev and use `../LICENSE-BSD-2-Clause`.
 

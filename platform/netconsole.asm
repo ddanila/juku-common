@@ -7,16 +7,39 @@
 ; character; status polls are rate-limited while idle. A missing/broken host
 ; disables mirroring and polling until a later status call reprobes it.
 
+.ifndef NATIVE_SERVICES
+NATIVE_SERVICES equ     0
+.endif
+
         cseg
         public  NCENA
         public  NCSTAT
         public  NCIN
         public  NCOUT
+if NATIVE_SERVICES
+        public  NCTIME
+        public  NCPUBLISH
+        public  NCDIAG
+        public  NCCAPS
+        public  NCCFG
+endif
 
 USARTDATA      equ     008h
 USARTCTL       equ     009h
 NC_POLL        equ     020h
 NC_OUT         equ     021h
+if NATIVE_SERVICES
+NC_TIME_GET    equ     022h
+NC_TIME_SET    equ     023h
+NC_STATUS      equ     024h
+NC_DIAG        equ     025h
+NC_CAPS        equ     026h
+; This native network-ROM profile fixes BIOS at BC00h. GENCPM relocates the
+; SCB to BB9Ch, hence its canonical +58h clock field is runtime BBF4h.
+SCBDATE        equ     0bbf4h
+NCRECONNECT    equ     0c65ch
+NCLASTFAIL     equ     0c65dh
+endif
 .ifdef NETCONSOLE_EAGER_POLL
 NCIDLEPOLLS    equ     1
 .else
@@ -29,7 +52,25 @@ NCENA: mvi     a,1
         sta     NCBACK         ; poll on the first remote status call
         xra     a
         sta     NCHAVE
+if NATIVE_SERVICES
+        sta     NCRECONNECT
+        sta     NCLASTFAIL
+endif
         ret
+
+if NATIVE_SERVICES
+; Apply the explicit host feature byte returned by NCCAPS. Bit 0 is N4
+; console. A host which explicitly lacks it disables periodic reprobes; an
+; older host which rejects NCCAPS never calls this routine and retains the
+; legacy bounded discovery behavior.
+NCCFG: ani     1
+        jnz     NCENA
+        sta     NCPRES
+        sta     NCEN
+        sta     NCHAVE
+        sta     NCBACK
+        ret
+endif
 
 ; Return FFh when a remote byte is cached, otherwise zero. Preserve BC/DE/HL.
 NCSTAT:
@@ -101,6 +142,89 @@ NCOUTDONE:
         pop     psw
         ret
 
+if NATIVE_SERVICES
+; CP/M 3 TIME transport. C=00h fetches the host clock; C=FFh publishes the
+; SCB date/hour/minute as a session-only host offset. Preserve HL and DE as
+; required by the System Guide. A=0 succeeds; A=1 leaves the SCB unchanged.
+NCTIME:
+        push    h
+        push    d
+        mov     a,c
+        ora     a
+        jz      NCTIMEGET
+        inr     a
+        jnz     NCTIMEFAIL
+        lda     SCBDATE
+        sta     NCARG
+        lda     SCBDATE+1
+        sta     NCARG1
+        lda     SCBDATE+2
+        sta     NCARG2
+        lda     SCBDATE+3
+        sta     NCARG3
+        mvi     a,NC_TIME_SET
+        jmp     NCTIMECALL
+NCTIMEGET:
+        mvi     a,NC_TIME_GET
+NCTIMECALL:
+        call    NCCALL
+        jmp     NCTIMERET
+NCTIMEFAIL:
+        mvi     a,1
+NCTIMERET:
+        pop     d
+        pop     h
+        ret
+
+; Publish the same bounded configuration tuple shown by the target STATUS
+; utility. A=raw S21, B=decoded video mode, D=feature flags, E=last clock
+; status. This is best-effort observability: preserve every caller register
+; and leave host loss to the existing NCCALL recovery path.
+NCPUBLISH:
+        push    b
+        mvi     c,NC_STATUS
+        jmp     NCPUBLISH1
+; Publish a machine-readable diagnostic tuple. A=suite, B=pass mask,
+; D=failure mask, E=flags. It shares the status publisher's bounded turn.
+NCDIAG:
+        push    b
+        mvi     c,NC_DIAG
+NCPUBLISH1:
+        push    psw
+        push    d
+        push    h
+        sta     NCARG
+        mov     a,b
+        sta     NCARG1
+        mov     a,d
+        sta     NCARG2
+        mov     a,e
+        sta     NCARG3
+        mov     a,c
+        call    NCCALL
+        pop     h
+        pop     d
+        pop     psw
+        pop     b
+        ret
+
+; Query explicit host capabilities. Return A=0 and HL -> four bytes
+; (protocol, maximum read-ahead, feature flags, drive count), or A=1/HL=0.
+; Unlike the startup N4 marker this is a request/reply contract and can be
+; repeated after host replacement.
+NCCAPS:
+        mvi     a,NC_CAPS
+        call    NCCALL
+        ora     a
+        jnz     NCCAPSFAIL
+        lxi     h,NCCAPBUF
+        ret
+NCCAPSFAIL:
+        lxi     h,0
+        mvi     a,1
+        ret
+endif
+
 ; A=operation, NCARG=argument. Return zero for a valid status 0/2 response.
 NCCALL:sta     NCOP
         lda     NCSEQ
@@ -119,11 +243,19 @@ NCCALL:sta     NCOP
         call    NCSEND
         lda     NCARG
         call    NCSEND
+if NATIVE_SERVICES
+        lda     NCARG1
+        call    NCSEND
+        lda     NCARG2
+        call    NCSEND
+        lda     NCARG3
+.else
         xra     a
         call    NCSEND
         xra     a
         call    NCSEND
         xra     a
+endif
         call    NCSEND
         mov     a,b
         call    NCTX
@@ -162,6 +294,42 @@ NCSYNC:call    NCRX
         call    NCRXC
         jc      NCFAIL
         sta     NCSTATUS
+if NATIVE_SERVICES
+        lda     NCOP
+        cpi     NC_TIME_GET
+        jnz     NCNOTTIME
+        lda     NCSTATUS
+        ora     a
+        jnz     NCNOKEY
+        lxi     h,NCTBUF
+        mvi     d,5
+NCTIMERX:
+        call    NCRXC
+        jc      NCFAIL
+        mov     m,a
+        inx     h
+        dcr     d
+        jnz     NCTIMERX
+        jmp     NCNOKEY
+NCNOTTIME:
+        cpi     NC_CAPS
+        jnz     NCNOTCAPS
+        lda     NCSTATUS
+        ora     a
+        jnz     NCNOKEY
+        lxi     h,NCCAPBUF
+        mvi     d,4
+NCCAPRX:
+        call    NCRXC
+        jc      NCFAIL
+        mov     m,a
+        inx     h
+        dcr     d
+        jnz     NCCAPRX
+        jmp     NCNOKEY
+NCNOTCAPS:
+        lda     NCSTATUS
+endif
         cpi     2
         jnz     NCNOKEY
         call    NCRXC
@@ -180,6 +348,37 @@ NCNOKEY:
         cpi     2
         jnz     NCFAIL
 NCSUCCESS:
+if NATIVE_SERVICES
+        lda     NCOP
+        cpi     NC_TIME_GET
+        jnz     NCSUCCESS1
+        lxi     h,NCTBUF
+        lxi     d,SCBDATE
+        mvi     c,5
+NCTIMECOMMIT:
+        mov     a,m
+        stax    d
+        inx     h
+        inx     d
+        dcr     c
+        jnz     NCTIMECOMMIT
+NCSUCCESS1:
+endif
+if NATIVE_SERVICES
+        lda     NCEN
+        ora     a
+        jnz     NCSUCCESS2
+        lda     NCLASTFAIL
+        ora     a
+        jz      NCSUCCESS2
+        lda     NCRECONNECT
+        inr     a
+        jnz     NCRECONNECTSTORE
+        dcr     a                       ; saturate at FFh
+NCRECONNECTSTORE:
+        sta     NCRECONNECT
+NCSUCCESS2:
+endif
         mvi     a,1
         sta     NCEN
         xra     a
@@ -189,6 +388,10 @@ NCFAIL:xra     a
         sta     NCEN
         sta     NCHAVE
         sta     NCBACK         ; underflow gives 256 local CONST calls
+if NATIVE_SERVICES
+        inr     a
+        sta     NCLASTFAIL     ; 01h: bounded N4 timeout/framing failure
+endif
         mvi     a,1
         ret
 
@@ -239,3 +442,10 @@ NCSEQ: db      0
 NCOP:  db      0
 NCARG: db      0
 NCSTATUS:db    0
+if NATIVE_SERVICES
+NCARG1:db      0
+NCARG2:db      0
+NCARG3:db      0
+NCTBUF:ds      5
+NCCAPBUF:ds    4
+endif
