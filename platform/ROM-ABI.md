@@ -62,6 +62,12 @@ The ABI 1.0 vectors and behavior are unchanged. A 1.0 consumer accepts a 1.1
 ROM and simply ignores the appended vectors; a 1.1 consumer rejects an older
 ROM before calling them.
 
+`FF50h` is the ABI 1.1 ROM's internal reset-handoff vector. Boot-only code
+jumps there after changing the memory overlay, avoiding non-relocatable branch
+targets in the copied transition stub. It applies S21 bit 0: set proceeds to
+the automatic network loader, while clear waits for a local `N` recovery key.
+Operating systems do not call this vector.
+
 NetDisk request version 1 is a 10-byte caller-owned block: version, operation,
 drive, little-endian track, sector, little-endian 128-byte DMA pointer, and
 little-endian three-slot cache pointer. Operation 0 reads one record through

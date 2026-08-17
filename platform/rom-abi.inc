@@ -56,6 +56,7 @@ JROMGETINFO     equ     JROMABIBASE+047h
 .ifdef ROM_ABI_LOCALE
 JROMCONFIG      equ     JROMABIBASE+04ah
 JROMKEYREMAP    equ     JROMABIBASE+04dh
+JROMBOOTPOLICY  equ     JROMABIBASE+050h
 .endif
 
 ; JCGNETDISK request v1 (10 bytes at caller-owned low RAM).
