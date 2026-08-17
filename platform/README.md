@@ -59,6 +59,8 @@ report the same configuration without adding unsolicited boot traffic.
 `NCDIAG` uses the same preserved-register and bounded-turn contract for a
 suite/pass/fail/flags result, allowing unattended diagnostics without a raw
 USART owner or a disk-starving stream.
+`NCBOOT` publishes the retained stage/retry/protocol/ABI-minor tuple through
+operation 27h with the same bounded and duplicate-safe behavior.
 `NCCAPS` performs an explicit, repeatable operation-26h query and returns the
 host's four-byte NetDisk protocol, maximum read-ahead, feature, and drive-count
 record. This is the runtime contract; the earlier N3/N4 startup marker remains

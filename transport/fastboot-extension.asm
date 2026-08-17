@@ -13,6 +13,10 @@
 
 USARTDATA       equ     008h
 USARTCTL        equ     009h
+.ifdef FASTBOOT_BOOT_RECORD
+BOOTSTAGE       equ     0d611h
+BOOTRETRIES     equ     0d612h
+.endif
 
 .ifdef FASTBOOT_CPM3
 .ifdef FASTBOOT_CPM3_ROM
@@ -64,6 +68,10 @@ PROTOCOL_VERSION equ    3
 
         org     0300h
 
+.ifdef FASTBOOT_BOOT_RECORD
+        mvi     a,030h                  ; extension active, finding JZ
+        sta     BOOTSTAGE
+.endif
 session:
         call    send_ready
 
@@ -85,6 +93,10 @@ find_z:
         jz      find_z
         jmp     find_j
 stream_header:
+.ifdef FASTBOOT_BOOT_RECORD
+        mvi     a,031h                  ; system header accepted
+        sta     BOOTSTAGE
+.endif
 .else
         jnz     find_j
 .endif
@@ -128,10 +140,20 @@ receive_system:
         ; The builder patches these two immediates with the expected CRC.
         mvi     a,0a5h
         cmp     d
+.ifdef FASTBOOT_BOOT_RECORD
+        jnz     boot_crc_fail
+.else
         jnz     session
+.endif
         mvi     a,05ah
         cmp     e
+.ifdef FASTBOOT_BOOT_RECORD
+        jnz     boot_crc_fail
+        mvi     a,032h                  ; compressed image authenticated
+        sta     BOOTSTAGE
+.else
         jnz     session
+.endif
 .else
         call    rx
         cmp     d
@@ -144,6 +166,10 @@ receive_system:
         lxi     d,COMPRESSED
         lxi     b,DESTINATION
         call    dzx0
+.ifdef FASTBOOT_BOOT_RECORD
+        mvi     a,040h                  ; decompressed system is entering
+        sta     BOOTSTAGE
+.endif
 .else
         ; Stream packet: 'J','S', 6656 data bytes, CRC-hi, CRC-lo.
 find_j:
@@ -195,6 +221,18 @@ drain:
 .endif
 .endif
         jmp     ENTRY
+
+.ifdef FASTBOOT_BOOT_RECORD
+boot_crc_fail:
+        mvi     a,0e2h                  ; bad compressed-system CRC
+        sta     BOOTSTAGE
+        lda     BOOTRETRIES
+        cpi     0ffh
+        jz      session
+        inr     a
+        sta     BOOTRETRIES
+        jmp     session
+.endif
 
 .ifdef FASTBOOT_ZX0
 ; ZX0 classic-format Intel 8080 decoder by Ivan Gorodetsky, based on the ZX0

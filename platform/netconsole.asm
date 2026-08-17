@@ -20,6 +20,7 @@ if NATIVE_SERVICES
         public  NCTIME
         public  NCPUBLISH
         public  NCDIAG
+        public  NCBOOT
         public  NCCAPS
         public  NCCFG
 endif
@@ -34,6 +35,7 @@ NC_TIME_SET    equ     023h
 NC_STATUS      equ     024h
 NC_DIAG        equ     025h
 NC_CAPS        equ     026h
+NC_BOOT        equ     027h
 ; This native network-ROM profile fixes BIOS at BC00h. GENCPM relocates the
 ; SCB to BB9Ch, hence its canonical +58h clock field is runtime BBF4h.
 SCBDATE        equ     0bbf4h
@@ -189,6 +191,12 @@ NCPUBLISH:
 NCDIAG:
         push    b
         mvi     c,NC_DIAG
+        jmp     NCPUBLISH1
+; Publish the retained bootstrap tuple. A=stage, B=retry count, D=protocol,
+; E=ROM ABI minor. It uses the same bounded/idempotent four-byte transport.
+NCBOOT:
+        push    b
+        mvi     c,NC_BOOT
 NCPUBLISH1:
         push    psw
         push    d
