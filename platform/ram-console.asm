@@ -144,6 +144,7 @@ RAMCONINIT:
         call    RAMCURSORRELOAD
         call    RKCONFIG
         sta     RAMCONFIG
+.ifdef RAMLOCALEFONTS
         push    psw
         rrc
         rrc
@@ -151,6 +152,7 @@ RAMCONINIT:
         ani     3
         sta     RAMLOCALE
         pop     psw
+.endif
         rrc
         ani     3
         call    RAMSETMODE
@@ -214,11 +216,13 @@ RAMPRINTABLE:
         jc      RAMOUTDONE
         cpi     07fh
         jc      RAMCHARASCII
+.ifdef RAMLOCALEFONTS
         lda     RAMLOCALE
         cpi     1
         jz      RAMCHAREST
         cpi     2
         jz      RAMCHARRUS
+.endif
 RAMCHARPSEUDOTRY:
         lda     RAMVIDMODE
         cpi     3
@@ -238,8 +242,10 @@ RAMCHARPSEUDOLOOK:
 RAMCHARPSEUDO:
         mvi     a,8
         sta     RAMFONTROWS
+.ifdef RAMLOCALEFONTS
         lxi     h,RAMFONTPSEUDO
         shld    RAMFONTBASEPTR
+.endif
         mov     a,c
         jmp     RAMCHARINDEX
 RAMCHARQUESTION:
@@ -247,8 +253,10 @@ RAMCHARQUESTION:
 RAMCHARASCII:
         mvi     a,7
         sta     RAMFONTROWS
+.ifdef RAMLOCALEFONTS
         lxi     h,RAMFONT80
         shld    RAMFONTBASEPTR
+.endif
 RAMCHARBASE:
         mov     a,e
         sui     020h
@@ -279,9 +287,19 @@ RAMFONTMUL8:
         dad     h
         dad     h
 RAMFONTREADY:
+.ifdef RAMLOCALEFONTS
         xchg                            ; DE = glyph byte offset
         lhld    RAMFONTBASEPTR
         dad     d
+.else
+        lda     RAMFONTROWS
+        cpi     8
+        lxi     d,RAMFONT80
+        jnz     RAMFONTBASEOK
+        lxi     d,RAMFONTPSEUDO
+RAMFONTBASEOK:
+        dad     d
+.endif
         xchg                            ; DE = font rows
         pop     h                       ; HL = packed framebuffer cell
 
@@ -313,6 +331,7 @@ RAMOUTDONE:
         pop     psw
         ret
 
+.ifdef RAMLOCALEFONTS
 ; Sparse locale banks return a compact glyph index without changing the
 ; renderer. Estonian uses the ISO-8859-1 byte values of its eight national
 ; letters. Russian uses CP866, whose Cyrillic ranges avoid CP437 B0h..DFh.
@@ -357,6 +376,7 @@ RAMFONTFOUND:
         mov     a,c
         ora     a                       ; clear carry
         ret
+.endif
 
 RAMNEWLINE:
         lda     RAMROW
@@ -693,7 +713,9 @@ RAMFONTROWS:    db      7
 RAMCURVISIBLE:  db      0
 RAMCURCOUNT:    dw      CURSORPERIOD
 RAMCONFIG:      db      0
+.ifdef RAMLOCALEFONTS
 RAMLOCALE:      db      0
+.endif
 RAMVIDMODE:     db      3
 RAMCOLS:        db      80
 RAMROWS:        db      24
@@ -703,7 +725,11 @@ RAMCELLMASK:    db      0f8h
 RAMVIDSTRIDE:   db      50
 RAMROWBYTES:    dw      400
 RAMCURSORLINE:  dw      350
+.ifdef RAMLOCALEFONTS
 RAMFONTBASEPTR: dw      RAMFONT80
+.endif
 
         include "creep-console-font.asm"
+.ifdef RAMLOCALEFONTS
         include "locale-console-fonts.asm"
+.endif
