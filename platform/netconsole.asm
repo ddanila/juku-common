@@ -20,6 +20,7 @@ if NATIVE_SERVICES
         public  NCTIME
         public  NCPUBLISH
         public  NCDIAG
+        public  NCCAPS
 endif
 
 USARTDATA      equ     008h
@@ -31,11 +32,12 @@ NC_TIME_GET    equ     022h
 NC_TIME_SET    equ     023h
 NC_STATUS      equ     024h
 NC_DIAG        equ     025h
+NC_CAPS        equ     026h
 ; This native network-ROM profile fixes BIOS at BC00h. GENCPM relocates the
 ; SCB to BB9Ch, hence its canonical +58h clock field is runtime BBF4h.
 SCBDATE        equ     0bbf4h
-NCRECONNECT    equ     0c5fch
-NCLASTFAIL     equ     0c5fdh
+NCRECONNECT    equ     0c65ch
+NCLASTFAIL     equ     0c65dh
 endif
 .ifdef NETCONSOLE_EAGER_POLL
 NCIDLEPOLLS    equ     1
@@ -190,6 +192,22 @@ NCPUBLISH1:
         pop     psw
         pop     b
         ret
+
+; Query explicit host capabilities. Return A=0 and HL -> four bytes
+; (protocol, maximum read-ahead, feature flags, drive count), or A=1/HL=0.
+; Unlike the startup N4 marker this is a request/reply contract and can be
+; repeated after host replacement.
+NCCAPS:
+        mvi     a,NC_CAPS
+        call    NCCALL
+        ora     a
+        jnz     NCCAPSFAIL
+        lxi     h,NCCAPBUF
+        ret
+NCCAPSFAIL:
+        lxi     h,0
+        mvi     a,1
+        ret
 endif
 
 ; A=operation, NCARG=argument. Return zero for a valid status 0/2 response.
@@ -279,6 +297,22 @@ NCTIMERX:
         jnz     NCTIMERX
         jmp     NCNOKEY
 NCNOTTIME:
+        cpi     NC_CAPS
+        jnz     NCNOTCAPS
+        lda     NCSTATUS
+        ora     a
+        jnz     NCNOKEY
+        lxi     h,NCCAPBUF
+        mvi     d,4
+NCCAPRX:
+        call    NCRXC
+        jc      NCFAIL
+        mov     m,a
+        inx     h
+        dcr     d
+        jnz     NCCAPRX
+        jmp     NCNOKEY
+NCNOTCAPS:
         lda     NCSTATUS
 endif
         cpi     2
@@ -398,4 +432,5 @@ NCARG1:db      0
 NCARG2:db      0
 NCARG3:db      0
 NCTBUF:ds      5
+NCCAPBUF:ds    4
 endif

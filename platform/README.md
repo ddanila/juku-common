@@ -54,8 +54,12 @@ report the same configuration without adding unsolicited boot traffic.
 `NCDIAG` uses the same preserved-register and bounded-turn contract for a
 suite/pass/fail/flags result, allowing unattended diagnostics without a raw
 USART owner or a disk-starving stream.
+`NCCAPS` performs an explicit, repeatable operation-26h query and returns the
+host's four-byte NetDisk protocol, maximum read-ahead, feature, and drive-count
+record. This is the runtime contract; the earlier N3/N4 startup marker remains
+only a synchronization hint.
 The native profile also keeps saturating reconnect and last-failure fields at
-C5FCh/C5FDh in its documented workspace. They change only after a bounded N4
+C65Ch/C65Dh in its documented workspace. They change only after a bounded N4
 failure and a later successful reprobe; initial capability setup is not
 miscounted as a reconnect.
 
