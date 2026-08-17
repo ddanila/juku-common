@@ -48,6 +48,9 @@ CACHE          equ     0d080h
 .endif
 .endif
 SLOTSIZE       equ     131
+.ifndef N3MAXRECORDS
+N3MAXRECORDS   equ     3
+.endif
 
 N3ENA: sta     N3MODE
 N3INV: xra     a
@@ -206,7 +209,7 @@ N3SYNC:call    N3RX
         jc      N3BAD
         ora     a
         jz      N3END
-        cpi     4
+        cpi     N3MAXRECORDS+1
         jnc     N3BAD
         sta     N3COUNT
         mov     c,a

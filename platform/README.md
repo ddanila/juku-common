@@ -71,8 +71,10 @@ C65Ch/C65Dh in its documented workspace. They change only after a bounded N4
 failure and a later successful reprobe; initial capability setup is not
 miscounted as a reconnect.
 
-A resident consumer may define `ROMNETDISK_PER_DRIVE` and a six-byte
-`ROMNETDRIVESTATEBASE` to retain independent validity counts and cache
+A resident consumer may define `N3MAXRECORDS` before inclusion to raise its
+bounded reply/cache capacity above the default three records. It may define
+`ROMNETDISK_PER_DRIVE` and a six-byte `ROMNETDRIVESTATEBASE` to retain
+independent validity counts and cache
 pointers for A: and B:. Reusing one physical buffer remains safe: the alias
 guard invalidates the other drive before reuse, reproducing the conservative
 single-cache behavior. Writes and failed transactions invalidate the current
