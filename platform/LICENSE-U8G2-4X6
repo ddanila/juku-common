@@ -1,0 +1,13 @@
+The Cyrillic glyphs in locale-console-fonts.asm are derived from u8g2's
+tools/font/bdf/4x6.bdf at commit
+ab9e48b2228351e9476682a70b7f3ee4909cd585.
+
+The source BDF identifies itself as:
+
+    COPYRIGHT "Public domain font.  Share and enjoy."
+
+Source:
+https://github.com/olikraus/u8g2/blob/ab9e48b2228351e9476682a70b7f3ee4909cd585/tools/font/bdf/4x6.bdf
+
+Pinned SHA-256:
+cc8318b75a92f6209245ac771e891fa1b51a5c64e6eea0e0c85349eb89e8ef8b

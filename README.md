@@ -19,3 +19,5 @@ in `LICENSE-BSD-2-Clause`. The embedded ZX0 decoder retains its authorship and
 license notice; see `transport/LICENSE.ZX0` and `transport/README.md`. The
 active console font is derived from Romeo Van Snick's MIT-licensed Creep; see
 `platform/LICENSE-CREEP` and `platform/README.md`.
+The optional Cyrillic bank comes from a public-domain u8g2 BDF; see
+`platform/LICENSE-U8G2-4X6` and `platform/README.md`.

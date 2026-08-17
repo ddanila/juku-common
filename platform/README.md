@@ -9,6 +9,9 @@ CP/M Plus Juku port:
   to a five-by-seven Juku text cell, plus a compact standard-CP437 UI subset;
 - `creep-console-font-reference.txt`: human-reviewable glyph rows used by an
   independent framebuffer oracle, not generated assembler;
+- `locale-console-fonts.asm` and its reference: compact ISO-8859-1 Estonian
+  and CP866 Russian extension banks. CP866 deliberately leaves B0h..DFh to
+  the edge-connected CP437 text-interface glyphs;
 - `ram-console-font.asm` and its reference: the earlier domsson CC0 5x7
   source, retained for historical comparison and possible wider modes;
 - `ram-keyboard.asm`: interrupt-independent matrix keyboard driver; defining
@@ -58,6 +61,7 @@ cells form solid lines. The offline build needs no network or font package:
 
 ```sh
 python3 tools/creep_console_oracle.py
+python3 tools/locale_console_oracle.py
 ```
 
 The oracle checks all 95 ASCII glyphs and the compact CP437 subset against the
@@ -75,6 +79,18 @@ python3 tools/generate_ram_console_font.py charmap-oldschool_white.png \
 
 Regeneration is optional and requires Pillow; ordinary assembly consumes the
 checked-in generated source and adds no image-library build dependency.
+
+The Estonian bank is generated from the same pinned MIT Creep 0.31 BDF. The
+Russian bank uses the public-domain Unicode 4x6 BDF distributed by u8g2 at
+commit `ab9e48b2228351e9476682a70b7f3ee4909cd585`; its URL and SHA-256 are
+pinned in `../tools/generate_locale_console_fonts.py`, and provenance is
+retained in `LICENSE-U8G2-4X6`. Regenerate or verify both compact banks with:
+
+```sh
+python3 tools/generate_locale_console_fonts.py creep.bdf 4x6.bdf \
+  --reference platform/locale-console-fonts-reference.txt \
+  --assembly platform/locale-console-fonts.asm --check
+```
 
 Its older offline oracle verifies all 95 generated glyphs against the readable
 source reference and can render a 400x192 PBM without executing the 8080
