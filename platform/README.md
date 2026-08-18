@@ -98,9 +98,10 @@ python3 tools/creep_console_oracle.py
 python3 tools/locale_console_oracle.py
 ```
 
-The oracle checks all 95 ASCII glyphs and the compact CP437 subset against the
-readable reference, enforces text separation and connected pseudographics,
-and independently renders all four video geometries.
+The oracle checks all 95 ASCII glyphs and the 26-glyph CP437 UI subset against
+the readable reference, including the single-line and VC-compatible
+double-line box repertoire. It enforces text separation and connected
+pseudographics, and independently renders all four video geometries.
 
 The retained earlier font source is published as CC0 by domsson at
 <https://opengameart.org/content/ascii-bitmap-font-oldschool>. Download

@@ -100,7 +100,7 @@ RAMFONT80:
         db      000h,000h,000h,000h,050h,0a0h,000h ; 7E
 .endif
 
-; CP437 UI subset: shade, edge-connected single boxes, and blocks.
+; CP437 UI subset: shade, VC-compatible boxes, and blocks.
 .ifndef CREEP_ASCII_ONLY
 CREEP_INCLUDE_PSEUDO equ 1
 .endif
@@ -109,11 +109,15 @@ CREEP_INCLUDE_PSEUDO equ 1
 .endif
 .ifdef CREEP_INCLUDE_PSEUDO
 RAMFONTPSEUDOCODES:
-        db      0b0h,0b3h,0b4h,0bfh,0c0h,0c1h,0c2h,0c3h,0c4h,0c5h,0d9h,0dah,0dbh,0dch,0ddh,0deh,0dfh
+        db      0b0h,0b3h,0b4h,0b6h,0bah,0bbh,0bch,0bfh,0c0h,0c1h,0c2h,0c3h,0c4h,0c5h,0c7h,0c8h,0c9h,0cdh,0d1h,0d9h,0dah,0dbh,0dch,0ddh,0deh,0dfh
 RAMFONTPSEUDO:
         db      080h,010h,000h,080h,010h,000h,080h,010h ; B0
         db      020h,020h,020h,020h,020h,020h,020h,020h ; B3
         db      020h,020h,020h,0e0h,020h,020h,020h,020h ; B4
+        db      050h,050h,050h,0f0h,050h,050h,050h,050h ; B6
+        db      050h,050h,050h,050h,050h,050h,050h,050h ; BA
+        db      000h,000h,0e0h,050h,0f0h,050h,050h,050h ; BB
+        db      050h,050h,0f0h,050h,0e0h,000h,000h,000h ; BC
         db      000h,000h,000h,0e0h,020h,020h,020h,020h ; BF
         db      020h,020h,020h,038h,000h,000h,000h,000h ; C0
         db      020h,020h,020h,0f8h,000h,000h,000h,000h ; C1
@@ -121,6 +125,11 @@ RAMFONTPSEUDO:
         db      020h,020h,020h,038h,020h,020h,020h,020h ; C3
         db      000h,000h,000h,0f8h,000h,000h,000h,000h ; C4
         db      020h,020h,020h,0f8h,020h,020h,020h,020h ; C5
+        db      050h,050h,050h,078h,050h,050h,050h,050h ; C7
+        db      050h,050h,078h,050h,038h,000h,000h,000h ; C8
+        db      000h,000h,038h,050h,078h,050h,050h,050h ; C9
+        db      000h,000h,0f8h,000h,0f8h,000h,000h,000h ; CD
+        db      000h,000h,0f8h,020h,0f8h,020h,020h,020h ; D1
         db      020h,020h,020h,0e0h,000h,000h,000h,000h ; D9
         db      000h,000h,000h,038h,020h,020h,020h,020h ; DA
         db      0f8h,0f8h,0f8h,0f8h,0f8h,0f8h,0f8h,0f8h ; DB

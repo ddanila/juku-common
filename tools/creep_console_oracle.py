@@ -11,8 +11,10 @@ ROOT = Path(__file__).resolve().parents[1]
 REFERENCE = ROOT / "platform" / "creep-console-font-reference.txt"
 ASSEMBLY = ROOT / "platform" / "creep-console-font.asm"
 LOCALE_REFERENCE = ROOT / "platform" / "locale-console-fonts-reference.txt"
-PSEUDO = (0xB0, 0xB3, 0xB4, 0xBF, 0xC0, 0xC1, 0xC2, 0xC3,
-          0xC4, 0xC5, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF)
+PSEUDO = (0xB0, 0xB3, 0xB4, 0xB6, 0xBA, 0xBB, 0xBC, 0xBF,
+          0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC7, 0xC8,
+          0xC9, 0xCD, 0xD1, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD,
+          0xDE, 0xDF)
 
 
 def load_reference() -> dict[int, tuple[str, ...]]:
@@ -184,6 +186,16 @@ def main() -> int:
         raise SystemExit("repeated CP437 C4 cells cannot form a solid line")
     if reference[0xB3][0][2] != "#" or reference[0xB3][-1][2] != "#":
         raise SystemExit("stacked CP437 B3 cells cannot form a solid line")
+    if reference[0xCD][2] != "#####" or reference[0xCD][4] != "#####":
+        raise SystemExit("repeated CP437 CD cells cannot form double lines")
+    if any(row[1] != "#" or row[3] != "#" for row in reference[0xBA]):
+        raise SystemExit("stacked CP437 BA cells cannot form double lines")
+    for code in (0xB6, 0xBB, 0xBC, 0xC7, 0xC8, 0xC9, 0xD1):
+        rows = reference[code]
+        if not (any(row[0] == "#" for row in rows) or
+                any(row[4] == "#" for row in rows) or
+                rows[0][1] == "#" or rows[-1][1] == "#"):
+            raise SystemExit(f"CP437 {code:02X} has no double-line edge")
     locale_reference = load_locale_reference()
     if len(locale_reference) != 74:
         raise SystemExit("locale font reference is incomplete")
@@ -196,7 +208,7 @@ def main() -> int:
             render_transcript(b"A\x80", locale=2):
         raise SystemExit("Russian bank is not selected by the renderer oracle")
     print("Creep console oracle: PASS "
-          "(95 text + 17 CP437 UI + 74 locale glyphs)")
+          "(95 text + 26 CP437 UI + 74 locale glyphs)")
     return 0
 
 
