@@ -69,7 +69,7 @@ each one. The ABI 1.0 and 1.1 addresses and contracts remain unchanged:
 | --- | --- | --- |
 | `JCGCONBLOCK` / `FF53h` | `JROMFCONBLOCK` | HL points below `D800h`, BC is 1..256 bytes. Render the complete span with the ordinary console policy and one gate crossing. Return A=0/CY clear, or A=FFh/CY set for a zero, oversized, or overlay-crossing span. |
 | `JCGNETMULTI` / `FF56h` | `JROMFNETMULTI` | HL points to a count byte (1..8) followed by that many ordinary ten-byte NetDisk-v1 request blocks. Execute in order and stop at the first nonzero status. Synchronous writes and every cache invalidation rule are identical to `JCGNETDISK`. |
-| `JCGKEYRAW` / `FF59h` | `JROMFKEYRAW` | Instantaneous untranslated scan: CY clear returns A=column 0..14 and B=the complete row/modifier sample; CY set returns B=FFh when no key or modifier is active. S21 is excluded from contact detection. |
+| `JCGKEYRAW` / `FF59h` | `JROMFKEYRAW` | Instantaneous untranslated scan: CY clear returns A=column 0..14 and B=the complete row/modifier sample; an ordinary matrix contact takes precedence over the global modifier lines, so a modified key reports its own column. CY set returns B=FFh when no key or modifier is active. S21 is excluded from contact detection. |
 
 ABI 1.2's low-RAM gate remains 214 bytes. Its fixed vector slots use a single
 register-preserving dispatcher, selected from the vector return address, so

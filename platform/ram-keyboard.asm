@@ -114,9 +114,11 @@ RKCONFIG2:
 .ifdef ROM_ABI_EXTENDED
 ; Return one instantaneous, untranslated matrix contact. Carry clear means
 ; A=column 0..14 and B=the complete D26 port-B sample (encoder row plus
-; SHIFT/CTRL). Carry set means no ordinary key or modifier is active and
-; B=FFh. S21's configuration bit on columns 8..14 is deliberately ignored
-; when deciding whether a contact exists.
+; SHIFT/CTRL). An ordinary matrix contact takes precedence over the global
+; modifier lines, so a modified key reports its own column. Carry set means
+; no ordinary key or modifier is active and B=FFh. S21's configuration bit on
+; columns 8..14 is deliberately ignored when deciding whether a contact
+; exists.
 RKRAWSCAN:
         mvi     c,0
 RKRAWCOL:
@@ -124,15 +126,28 @@ RKRAWCOL:
         out     KEYCOLPORT
         in      KEYROWPORT
         mov     b,a
-        ani     0cfh                    ; CTRL, SHIFT, and encoder nibble
-        cpi     0cfh
+        ani     00fh                    ; encoder contact only
+        cpi     00fh
         jnz     RKRAWFOUND
         inr     c
         mov     a,c
         cpi     15
         jc      RKRAWCOL
+
+        ; SHIFT and CTRL are global, active-low lines. Check them only after
+        ; every ordinary column so they cannot hide a modified key.
+        xra     a
+        out     KEYCOLPORT
+        in      KEYROWPORT
+        mov     b,a
+        ani     0c0h
+        cpi     0c0h
+        jnz     RKRAWMODIFIER
         mvi     b,0ffh
         stc
+        ret
+RKRAWMODIFIER:
+        xra     a                       ; column zero, clear carry
         ret
 RKRAWFOUND:
         mov     a,c
