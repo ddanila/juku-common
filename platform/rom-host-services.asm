@@ -2,7 +2,7 @@
 ; Copyright (c) 2026 Danila Sukharev
 ; BSD-2-Clause; see ../LICENSE-BSD-2-Clause.
 ;
-; The including ROM defines ROMHOSTSTATEBASE, a 26-byte low-RAM block. The
+; The including ROM defines ROMHOSTSTATEBASE, a 27-byte low-RAM block. The
 ; code owns Janet framing, bounded polling, duplicate-safe publication,
 ; capability/time buffers and reconnect state. CP/M retains only its calling
 ; conventions, SCB commit and local-console policy.
@@ -39,10 +39,12 @@ RHBLEN          equ     ROMHOSTSTATEBASE+21
 RHBPTR          equ     ROMHOSTSTATEBASE+22
 RHLASTFAIL      equ     ROMHOSTSTATEBASE+24
 RHRECONNECT     equ     ROMHOSTSTATEBASE+25
-ROMHOSTSTATEBYTES equ   26
+RHINPUT         equ     ROMHOSTSTATEBASE+26
+ROMHOSTSTATEBYTES equ   27
 
 ; C selects one of JROMHOST*. Unknown selectors return FFh/CY set.
 rom_host_impl:
+        sta     RHINPUT                 ; selector decode must preserve A input
         mov     a,c
         ora     a
         jz      rh_enable
@@ -88,6 +90,7 @@ rh_enable:
 
 ; A is the explicit host feature byte. Bit 0 advertises N4 console support.
 rh_config:
+        lda     RHINPUT
         ani     1
         jnz     rh_enable
         sta     RHPRES
@@ -149,6 +152,7 @@ rh_input:
 
 ; A is one byte to mirror. Host loss is deliberately invisible to CONOUT.
 rh_output:
+        lda     RHINPUT
         sta     RHARG
         lda     RHEN
         ora     a
@@ -197,6 +201,7 @@ rh_publish_boot:
         mvi     c,RHOP_BOOT
 ; A/B/D/E are the four tuple bytes. Publication is bounded and best effort.
 rh_publish:
+        lda     RHINPUT
         sta     RHARG
         mov     a,b
         sta     RHARG1

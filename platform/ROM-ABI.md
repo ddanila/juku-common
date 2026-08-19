@@ -87,7 +87,7 @@ behavior remain unchanged:
 
 The host implementation owns wire framing, checksum, turnaround, timeout,
 duplicate-safe operation sequencing, cached remote input, capability/time
-reply buffers and reconnect counters. Its 26 mutable bytes live in the fixed
+reply buffers and reconnect counters. Its 27 mutable bytes live in the fixed
 ROM workspace; no initialized host-transport code or state is required in a
 consumer's system image. Unknown selectors return `A=FFh` with carry set.
 

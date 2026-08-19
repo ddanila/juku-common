@@ -23,7 +23,7 @@ CP/M Plus Juku port:
 - `netdisk-v3.asm`: resilient three-record Janet read-ahead client;
 - `netconsole.asm`: optional resilient remote console;
 - `rom-host-services.asm`: ABI 1.3 resident N4 console, time, capability,
-  publication, bulk-output and reconnect transport using a fixed 26-byte
+  publication, bulk-output and reconnect transport using a fixed 27-byte
   low-RAM state block;
 - `rom-abi.inc`: fixed network-first ROM manifest, feature, vector, and
   low-RAM ownership constants;
