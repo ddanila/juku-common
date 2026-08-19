@@ -15,6 +15,8 @@ PSEUDO = (0xB0, 0xB3, 0xB4, 0xB6, 0xBA, 0xBB, 0xBC, 0xBF,
           0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC7, 0xC8,
           0xC9, 0xCD, 0xD1, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD,
           0xDE, 0xDF)
+LEGACY_PSEUDO = (0xB0, 0xB3, 0xB4, 0xBF, 0xC0, 0xC1, 0xC2, 0xC3,
+                 0xC4, 0xC5, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF)
 
 
 def load_reference() -> dict[int, tuple[str, ...]]:
@@ -52,8 +54,21 @@ def load_locale_reference() -> dict[tuple[int, int], tuple[str, ...]]:
     return result
 
 
-def assembly_bytes() -> tuple[bytes, bytes, bytes]:
+def assembly_bytes(*, legacy: bool = False) -> tuple[bytes, bytes, bytes]:
     text = ASSEMBLY.read_text()
+    conditional = re.compile(
+        r"^\.ifdef CREEP_LEGACY_PSEUDO\s*$\n"
+        r"(.*?)"
+        r"^\.else\s*$\n"
+        r"(.*?)"
+        r"^\.endif\s*$\n?",
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    text, replacements = conditional.subn(
+        lambda match: match.group(1 if legacy else 2), text,
+    )
+    if replacements != 2:
+        raise ValueError("expected two legacy pseudographic conditionals")
     sections = re.split(r"^RAMFONT(?:80|PSEUDOCODES|PSEUDO):\s*$", text,
                         flags=re.MULTILINE)
     if len(sections) != 4:
@@ -157,6 +172,14 @@ def main() -> int:
     if ascii_table != expected_ascii or codes != bytes(PSEUDO) or \
             pseudo_table != expected_pseudo:
         raise SystemExit("generated assembly differs from readable reference")
+    legacy_ascii, legacy_codes, legacy_table = assembly_bytes(legacy=True)
+    expected_legacy = b"".join(
+        encoded(reference[code]) for code in LEGACY_PSEUDO
+    )
+    if legacy_ascii != expected_ascii or \
+            legacy_codes != bytes(LEGACY_PSEUDO) or \
+            legacy_table != expected_legacy:
+        raise SystemExit("legacy assembly differs from readable reference")
 
     # Ordinary letters and digits retain a guaranteed blank right edge, so
     # any repeated or adjacent pair still has a visible inter-cell separator.
