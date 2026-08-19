@@ -120,6 +120,27 @@ RKCONFIG2:
 ; columns 8..14 is deliberately ignored when deciding whether a contact
 ; exists.
 RKRAWSCAN:
+.ifdef ROM_ABI_RAW_MODIFIER_FIRST
+        ; Compatibility path for the immutable ABI 1.2 C6 image. Its fitted
+        ; bytes and physical qualification remain reproducible even though a
+        ; separately named successor uses the corrected ordinary-first scan.
+        mvi     c,0
+RKRAWLEGACYCOL:
+        mov     a,c
+        out     KEYCOLPORT
+        in      KEYROWPORT
+        mov     b,a
+        ani     0cfh                    ; CTRL, SHIFT, and encoder nibble
+        cpi     0cfh
+        jnz     RKRAWFOUND
+        inr     c
+        mov     a,c
+        cpi     15
+        jc      RKRAWLEGACYCOL
+        mvi     b,0ffh
+        stc
+        ret
+.else
         mvi     c,0
 RKRAWCOL:
         mov     a,c
@@ -149,6 +170,7 @@ RKRAWCOL:
 RKRAWMODIFIER:
         xra     a                       ; column zero, clear carry
         ret
+.endif
 RKRAWFOUND:
         mov     a,c
         ora     a                       ; clear carry
