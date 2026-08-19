@@ -7,6 +7,9 @@
 
 JROMABIBASE     equ     0ff00h
 JROMABIMAJOR    equ     1
+.ifdef ROM_ABI_HOSTSERVICES
+JROMABIMINOR    equ     3
+.else
 .ifdef ROM_ABI_EXTENDED
 JROMABIMINOR    equ     2
 .else
@@ -14,6 +17,7 @@ JROMABIMINOR    equ     2
 JROMABIMINOR    equ     1
 .else
 JROMABIMINOR    equ     0
+.endif
 .endif
 .endif
 JROMABISIZE     equ     0100h
@@ -70,6 +74,25 @@ JROMCONBLOCK    equ     JROMABIBASE+053h
 JROMNETMULTI    equ     JROMABIBASE+056h
 JROMKEYRAW      equ     JROMABIBASE+059h
 .endif
+.ifdef ROM_ABI_HOSTSERVICES
+JROMHOST        equ     JROMABIBASE+05ch
+.endif
+
+; ABI 1.3 JROMHOST selectors. One selector vector preserves the fixed low-RAM
+; gate envelope while moving the complete N4/host transport into resident ROM.
+JROMHOSTENABLE  equ     0
+JROMHOSTCONFIG  equ     1
+JROMHOSTSTAT    equ     2
+JROMHOSTIN      equ     3
+JROMHOSTOUT     equ     4
+JROMHOSTTIMEGET equ     5
+JROMHOSTTIMESET equ     6
+JROMHOSTSTATUS  equ     7
+JROMHOSTDIAG    equ     8
+JROMHOSTBOOT    equ     9
+JROMHOSTCAPS    equ     10
+JROMHOSTBULK    equ     11
+JROMHOSTSTATE   equ     12
 
 ; JCGNETDISK request v1 (10 bytes at caller-owned low RAM).
 JROMNETREQBYTES equ     10
@@ -116,4 +139,7 @@ JCGKEYREMAPADDR equ     JROMGATEBASE+02dh
 JCGCONBLOCKADDR equ     JROMGATEBASE+033h
 JCGNETMULTIADDR equ     JROMGATEBASE+036h
 JCGKEYRAWADDR   equ     JROMGATEBASE+039h
+.endif
+.ifdef ROM_ABI_HOSTSERVICES
+JCGHOSTADDR     equ     JROMGATEBASE+03ch
 .endif

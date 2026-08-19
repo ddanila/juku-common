@@ -22,6 +22,9 @@ CP/M Plus Juku port:
   per-machine keys;
 - `netdisk-v3.asm`: resilient three-record Janet read-ahead client;
 - `netconsole.asm`: optional resilient remote console;
+- `rom-host-services.asm`: ABI 1.3 resident N4 console, time, capability,
+  publication, bulk-output and reconnect transport using a fixed 26-byte
+  low-RAM state block;
 - `rom-abi.inc`: fixed network-first ROM manifest, feature, vector, and
   low-RAM ownership constants;
 - `rom-call-gate.asm`: signature/version-checking low-RAM dispatcher for the
@@ -163,9 +166,9 @@ console startup. ABI 1.0 retains its byte-exact fixed 80x24 console:
 | `11` | 80x24 | 5x8 | 50 bytes |
 
 Every mode owns exactly 9,600 framebuffer bytes. The first three reproduce
-the stock/EktaSoft timing writes; the fourth reproduces MODX. The current ABI
-1 resident-ROM console intentionally remains the fixed 80x24 baseline, while
-the all-RAM path proves the switchable policy before a future ABI extension.
+the stock/EktaSoft timing writes; the fourth reproduces MODX. ABI 1.0 remains
+the fixed 80x24 baseline. ABI 1.1 and later resident consoles use the same
+switchable policy as the all-RAM implementation.
 
 An all-RAM consumer that defines `RAMLOCALEFONTS` uses the same cold-start
 sample to select the character bank with S21 bits 4:3:
@@ -185,5 +188,5 @@ the network-first ROM reserves a separate 2 KiB bank for these tables.
 An all-RAM consumer that defines `RAMKEYREMAP` can install zero to four
 input/output byte pairs with `RKSETREMAP`. The driver copies the pairs into
 resident state, so the program that selected the per-machine workaround need
-not remain loaded. A future ROM ABI minor can expose the same bounded facility
-without changing keyboard scan or translation semantics.
+not remain loaded. ABI 1.1 and later expose the same bounded facility through
+`JCGKEYREMAP` without changing keyboard scan or translation semantics.

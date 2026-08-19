@@ -77,6 +77,28 @@ the appended services do not collide with the helper at `D700h`. The resident
 sound vector is also implemented and advertises `JROMFSOUND`: A=0 forces
 silence and A=1 plays the bounded shared diagnostic phrase.
 
+ABI 1.3 appends one selector-driven host-services vector and advertises the
+previously reserved `JROMFNETCON` feature bit. Existing vectors and ABI 1.2
+behavior remain unchanged:
+
+| gate / ROM vector | feature | contract |
+| --- | --- | --- |
+| `JCGHOST` / `FF5Ch` | `JROMFNETCON` | C selects a bounded N4/host operation: enable, explicit feature configuration, remote status/input/output, TIME get/set, status/diagnostic/bootstrap publication, capability query, 1..32-byte bulk output, or reconnect-state query. CP/M-specific SCB commit and console policy remain in the caller. |
+
+The host implementation owns wire framing, checksum, turnaround, timeout,
+duplicate-safe operation sequencing, cached remote input, capability/time
+reply buffers and reconnect counters. Its 26 mutable bytes live in the fixed
+ROM workspace; no initialized host-transport code or state is required in a
+consumer's system image. Unknown selectors return `A=FFh` with carry set.
+
+`JCGDIAG` retains selector zero (`A=00h`) as the `A5h` capability marker. ABI
+1.3 additionally defines selectors 1..8 for CPU, private scratch-RAM data,
+scratch-RAM address, scratch-cell retention, complete resident-ROM additive
+integrity, D57 channel-0, D11 error status and retained reset-POST status.
+Every selector is bounded and non-destructive outside the ROM-owned scratch
+and state bytes. Whole-memory and intrusive peripheral tests remain outside
+the live operating-system ABI.
+
 The ABI 1.1 console keeps the same resident text policy in every geometry.
 Its copied mode-3 helper expands from 119 to the full 128-byte reserved helper
 window so row stride, scroll extent, packed cell width, and cursor scanline
