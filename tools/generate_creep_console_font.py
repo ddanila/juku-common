@@ -18,6 +18,10 @@ PSEUDO_CODES = (
     0xC9, 0xCD, 0xD1, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD,
     0xDE, 0xDF,
 )
+LEGACY_PSEUDO_CODES = (
+    0xB0, 0xB3, 0xB4, 0xBF, 0xC0, 0xC1, 0xC2, 0xC3,
+    0xC4, 0xC5, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE, 0xDF,
+)
 
 # Creep's terminal metrics permit glyphs taller than our raster cell. These
 # compact replacements retain the same four-pixel visual vocabulary while
@@ -197,15 +201,26 @@ def outputs(source: Path) -> tuple[str, str]:
         ".endif",
         ".ifdef CREEP_INCLUDE_PSEUDO",
         "RAMFONTPSEUDOCODES:",
+        ".ifdef CREEP_LEGACY_PSEUDO",
+        "        db      " + ",".join(
+            f"0{code:02x}h" for code in LEGACY_PSEUDO_CODES),
+        ".else",
         "        db      " + ",".join(f"0{code:02x}h" for code in PSEUDO_CODES),
+        ".endif",
         "RAMFONTPSEUDO:",
     ])
+    assembly.append(".ifdef CREEP_LEGACY_PSEUDO")
+    for code in LEGACY_PSEUDO_CODES:
+        rows = pseudo_rows(code)
+        values = ",".join(f"0{value:02x}h" for value in encode(rows))
+        assembly.append(f"        db      {values} ; {code:02X}")
+    assembly.append(".else")
     for code in PSEUDO_CODES:
         rows = pseudo_rows(code)
         reference.append(f"{code:02X} " + " ".join(rows))
         values = ",".join(f"0{value:02x}h" for value in encode(rows))
         assembly.append(f"        db      {values} ; {code:02X}")
-    assembly.append(".endif")
+    assembly.extend((".endif", ".endif"))
     return "\n".join(reference) + "\n", "\n".join(assembly) + "\n"
 
 

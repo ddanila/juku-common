@@ -109,8 +109,31 @@ CREEP_INCLUDE_PSEUDO equ 1
 .endif
 .ifdef CREEP_INCLUDE_PSEUDO
 RAMFONTPSEUDOCODES:
+.ifdef CREEP_LEGACY_PSEUDO
+        db      0b0h,0b3h,0b4h,0bfh,0c0h,0c1h,0c2h,0c3h,0c4h,0c5h,0d9h,0dah,0dbh,0dch,0ddh,0deh,0dfh
+.else
         db      0b0h,0b3h,0b4h,0b6h,0bah,0bbh,0bch,0bfh,0c0h,0c1h,0c2h,0c3h,0c4h,0c5h,0c7h,0c8h,0c9h,0cdh,0d1h,0d9h,0dah,0dbh,0dch,0ddh,0deh,0dfh
+.endif
 RAMFONTPSEUDO:
+.ifdef CREEP_LEGACY_PSEUDO
+        db      080h,010h,000h,080h,010h,000h,080h,010h ; B0
+        db      020h,020h,020h,020h,020h,020h,020h,020h ; B3
+        db      020h,020h,020h,0e0h,020h,020h,020h,020h ; B4
+        db      000h,000h,000h,0e0h,020h,020h,020h,020h ; BF
+        db      020h,020h,020h,038h,000h,000h,000h,000h ; C0
+        db      020h,020h,020h,0f8h,000h,000h,000h,000h ; C1
+        db      000h,000h,000h,0f8h,020h,020h,020h,020h ; C2
+        db      020h,020h,020h,038h,020h,020h,020h,020h ; C3
+        db      000h,000h,000h,0f8h,000h,000h,000h,000h ; C4
+        db      020h,020h,020h,0f8h,020h,020h,020h,020h ; C5
+        db      020h,020h,020h,0e0h,000h,000h,000h,000h ; D9
+        db      000h,000h,000h,038h,020h,020h,020h,020h ; DA
+        db      0f8h,0f8h,0f8h,0f8h,0f8h,0f8h,0f8h,0f8h ; DB
+        db      000h,000h,000h,000h,0f8h,0f8h,0f8h,0f8h ; DC
+        db      0e0h,0e0h,0e0h,0e0h,0e0h,0e0h,0e0h,0e0h ; DD
+        db      038h,038h,038h,038h,038h,038h,038h,038h ; DE
+        db      0f8h,0f8h,0f8h,0f8h,000h,000h,000h,000h ; DF
+.else
         db      080h,010h,000h,080h,010h,000h,080h,010h ; B0
         db      020h,020h,020h,020h,020h,020h,020h,020h ; B3
         db      020h,020h,020h,0e0h,020h,020h,020h,020h ; B4
@@ -137,4 +160,5 @@ RAMFONTPSEUDO:
         db      0e0h,0e0h,0e0h,0e0h,0e0h,0e0h,0e0h,0e0h ; DD
         db      038h,038h,038h,038h,038h,038h,038h,038h ; DE
         db      0f8h,0f8h,0f8h,0f8h,000h,000h,000h,000h ; DF
+.endif
 .endif
