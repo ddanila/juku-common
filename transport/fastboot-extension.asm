@@ -21,7 +21,11 @@ BOOTRETRIES     equ     0d612h
 .ifdef FASTBOOT_CPM3
 .ifdef FASTBOOT_CPM3_ROM
 DESTINATION     equ     09000h
+.ifdef FASTBOOT_CPM3_C8
+ENTRY           equ     0be00h
+.else
 ENTRY           equ     0bc00h
+.endif
 SYSTEM_SIZE     equ     04600h
 .else
 DESTINATION     equ     07000h
