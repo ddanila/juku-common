@@ -59,6 +59,12 @@ USART clock. `usart-status.asm` reads, but does not clear, the 8251 PE/OE/FE
 bits; readiness is intentionally not judged outside a defined half-duplex
 turn. Consumers provide the two port constants.
 
+`s21-config.asm` performs a bounded direct scan of keyboard columns 8..15 and
+returns the raw eight-position S21 configuration byte. It restores the
+previously selected keyboard column and does not call RomBios or a JukuNet ROM
+service, so a live CP/M front end can use the same mechanism with either ROM
+family. Consumers provide the D26 column and row port constants.
+
 `signature.asm` compares a caller-selected observed and expected byte string.
 It is used by the CP/M front end for the fixed ROM ABI manifest and remains
 independent of memory-map policy.
