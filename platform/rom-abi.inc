@@ -7,6 +7,9 @@
 
 JROMABIBASE     equ     0ff00h
 JROMABIMAJOR    equ     1
+.ifdef ROM_ABI_C9
+JROMABIMINOR    equ     4
+.else
 .ifdef ROM_ABI_HOSTSERVICES
 JROMABIMINOR    equ     3
 .else
@@ -17,6 +20,7 @@ JROMABIMINOR    equ     2
 JROMABIMINOR    equ     1
 .else
 JROMABIMINOR    equ     0
+.endif
 .endif
 .endif
 .endif
@@ -93,6 +97,25 @@ JROMHOSTBOOT    equ     9
 JROMHOSTCAPS    equ     10
 JROMHOSTBULK    equ     11
 JROMHOSTSTATE   equ     12
+
+; ABI 1.4 extends the state returned by JROMHOSTSTATE. The ABI 1.3 prefix is
+; unchanged: byte 0 is a zero/nonzero last-failure value and byte 1 is the
+; saturated reconnect count. ABI 1.4 appends flags and the operation which
+; incurred the retained failure.
+JROMHOSTSTATE13BYTES equ 2
+JROMHOSTSTATE14BYTES equ 4
+JROMHOSTFLAGDETECTED equ 001h
+JROMHOSTFLAGN4       equ 002h
+JROMHOSTFLAGCONSOLE  equ 004h
+JROMHOSTFLAGMIRROR   equ 008h
+JROMHOSTFLAGRECONNECT equ 010h
+JROMHOSTFAILNONE     equ 0
+JROMHOSTFAILTX       equ 1
+JROMHOSTFAILRX       equ 2
+JROMHOSTFAILSYNC     equ 3
+JROMHOSTFAILSEQUENCE equ 4
+JROMHOSTFAILINTEGRITY equ 5
+JROMHOSTFAILSTATUS   equ 6
 
 ; JCGNETDISK request v1 (10 bytes at caller-owned low RAM).
 JROMNETREQBYTES equ     10

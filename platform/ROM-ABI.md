@@ -91,6 +91,27 @@ reply buffers and reconnect counters. Its 27 mutable bytes live in the fixed
 ROM workspace; no initialized host-transport code or state is required in a
 consumer's system image. Unknown selectors return `A=FFh` with carry set.
 
+ABI 1.4 retains `JCGHOST` at `FF5Ch` and every selector/calling convention,
+then extends the state returned by selector `JROMHOSTSTATE`. The ABI 1.3
+two-byte prefix remains `{last failure, saturated reconnect count}`. ABI 1.4
+appends `{flags, failed operation}` and defines a four-byte record:
+
+- failure `00h` means none; `01h` TX timeout, `02h` RX timeout, `03h`
+  synchronization scan budget, `04h` sequence mismatch, `05h` reply-integrity
+  mismatch, and `06h` rejected/unsupported host status;
+- flags are `01h` host detected, `02h` N4 selected, `04h` console capability
+  advertised, `08h` mirroring currently enabled, and `10h` a successful
+  reconnect has occurred;
+- the final byte is the N4 operation retained with the last nonzero failure.
+
+ABI 1.4 bounds each transmitter-ready wait and the complete reply-prefix scan
+in addition to the existing bounded receives and finite payloads. A stuck
+transmitter, silent receiver, continuous non-prefix input, short reply, wrong
+sequence, bad integrity byte, or rejected status disables remote mirroring,
+records the specific reason, and returns. Local console output remains
+authoritative. The C9 implementation uses 29 bytes at `D7E0h..D7FCh`; the
+gate/work reservation and operating-system TPA do not grow.
+
 `JCGDIAG` retains selector zero (`A=00h`) as the `A5h` capability marker. ABI
 1.3 additionally defines selectors 1..8 for CPU, private scratch-RAM data,
 scratch-RAM address, scratch-cell retention, complete resident-ROM additive
@@ -108,6 +129,8 @@ follow the latched mode without consuming operating-system RAM elsewhere.
 jumps there after changing the memory overlay, avoiding non-relocatable branch
 targets in the copied transition stub. It applies S21 bit 0: set proceeds to
 the automatic network loader, while clear waits for a local `N` recovery key.
+C5 through C8 retain that behavior. C9/ABI 1.4 reserves bit 0 and proceeds to
+the network loader for either value; bits 4:1 retain their console meanings.
 Operating systems do not call this vector.
 
 NetDisk request version 1 is a 10-byte caller-owned block: version, operation,

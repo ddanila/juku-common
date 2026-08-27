@@ -39,8 +39,21 @@ RHBLEN          equ     ROMHOSTSTATEBASE+21
 RHBPTR          equ     ROMHOSTSTATEBASE+22
 RHLASTFAIL      equ     ROMHOSTSTATEBASE+24
 RHRECONNECT     equ     ROMHOSTSTATEBASE+25
+.ifdef ROM_ABI_C9
+; ABI 1.4 keeps the ABI 1.3 state prefix at +24/+25, then appends stable
+; negotiation flags and the operation retained with the last failure. Moving
+; the selector input into the previously unused tail makes the public fields
+; contiguous without consuming TPA.
+RHFLAGS         equ     ROMHOSTSTATEBASE+26
+RHLASTOP        equ     ROMHOSTSTATEBASE+27
+RHINPUT         equ     ROMHOSTSTATEBASE+28
+ROMHOSTSTATEBYTES equ   29
+RH_SYNC_SCANS   equ     256
+RH_TX_POLLS     equ     8192
+.else
 RHINPUT         equ     ROMHOSTSTATEBASE+26
 ROMHOSTSTATEBYTES equ   27
+.endif
 
 ; C selects one of JROMHOST*. Unknown selectors return FFh/CY set.
 rom_host_impl:
@@ -86,10 +99,41 @@ rh_enable:
         sta     RHHAVE
         sta     RHLASTFAIL
         sta     RHRECONNECT
+.ifdef ROM_ABI_C9
+        sta     RHLASTOP
+        mvi     a,JROMHOSTFLAGN4+JROMHOSTFLAGMIRROR
+        sta     RHFLAGS
+.endif
         ret
 
 ; A is the explicit host feature byte. Bit 0 advertises N4 console support.
 rh_config:
+.ifdef ROM_ABI_C9
+        lda     RHINPUT
+        ani     1
+        jz      rh_config_disable
+        mvi     a,1
+        sta     RHPRES
+        sta     RHEN
+        sta     RHBACK
+        xra     a
+        sta     RHHAVE
+        lda     RHFLAGS
+        ori     JROMHOSTFLAGN4+JROMHOSTFLAGCONSOLE+JROMHOSTFLAGMIRROR
+        sta     RHFLAGS
+        xra     a
+        ret
+rh_config_disable:
+        sta     RHPRES
+        sta     RHEN
+        sta     RHHAVE
+        sta     RHBACK
+        lda     RHFLAGS
+        ani     0f3h                    ; retain detected/N4/reconnect history
+        sta     RHFLAGS
+        xra     a
+        ret
+.else
         lda     RHINPUT
         ani     1
         jnz     rh_enable
@@ -98,6 +142,7 @@ rh_config:
         sta     RHHAVE
         sta     RHBACK
         ret
+.endif
 
 ; Return FFh when a remote key is cached, otherwise zero. Preserve BC/DE/HL.
 rh_status:
@@ -240,14 +285,23 @@ rh_bulk:
         mvi     a,RHOP_BULK
         sta     RHOP
         call    rh_begin
+.ifdef ROM_ABI_C9
+        jc      rh_fail_tx
+.endif
         lda     RHBLEN
         call    rh_send
+.ifdef ROM_ABI_C9
+        jc      rh_fail_tx
+.endif
         lhld    RHBPTR
         lda     RHBLEN
         mov     d,a
 rh_bulk_send:
         mov     a,m
         call    rh_send
+.ifdef ROM_ABI_C9
+        jc      rh_fail_tx
+.endif
         inx     h
         dcr     d
         jnz     rh_bulk_send
@@ -278,17 +332,35 @@ rh_clear_args:
 rh_call:
         sta     RHOP
         call    rh_begin
+.ifdef ROM_ABI_C9
+        jc      rh_fail_tx
+.endif
         lda     RHARG
         call    rh_send
+.ifdef ROM_ABI_C9
+        jc      rh_fail_tx
+.endif
         lda     RHARG1
         call    rh_send
+.ifdef ROM_ABI_C9
+        jc      rh_fail_tx
+.endif
         lda     RHARG2
         call    rh_send
+.ifdef ROM_ABI_C9
+        jc      rh_fail_tx
+.endif
         lda     RHARG3
         call    rh_send
+.ifdef ROM_ABI_C9
+        jc      rh_fail_tx
+.endif
 rh_finish:
         mov     a,b
         call    rh_tx
+.ifdef ROM_ABI_C9
+        jc      rh_fail_tx
+.endif
         lxi     d,128
 rh_drain:
         dcx     d
@@ -297,7 +369,11 @@ rh_drain:
         jnz     rh_drain
         mvi     a,034h
         out     RHUSARTCTL
+.ifdef ROM_ABI_C9
+        jmp     rh_sync_start
+.else
         jmp     rh_sync
+.endif
 
 rh_begin:
         lda     RHSEQ
@@ -308,22 +384,56 @@ rh_begin:
         mvi     b,0
         mvi     a,'J'
         call    rh_send
+.ifdef ROM_ABI_C9
+        rc
+.endif
         mvi     a,'D'
         call    rh_send
+.ifdef ROM_ABI_C9
+        rc
+.endif
         lda     RHOP
         call    rh_send
+.ifdef ROM_ABI_C9
+        rc
+.endif
         lda     RHSEQ
         call    rh_send
         ret
 
+.ifdef ROM_ABI_C9
+        ; Bound prefix acquisition across received bytes as well as each
+        ; individual receive wait. Continuous garbage can no longer keep a
+        ; caller inside rh_sync indefinitely.
+rh_sync_start:
+        lxi     h,RH_SYNC_SCANS
+.endif
 rh_sync:
+.ifdef ROM_ABI_C9
+        ; rh_finish is the sole entry and falls through rh_sync_start. Retry
+        ; edges return here with the remaining scan budget in HL.
+.endif
         call    rh_rx
+.ifdef ROM_ABI_C9
+        jc      rh_fail_rx
+        mov     c,a
+        dcx     h
+        mov     a,h
+        ora     l
+        jz      rh_fail_sync
+        mov     a,c
+.else
         jc      rh_fail
+.endif
         cpi     'D'
         jnz     rh_sync
         mvi     b,'D'
         call    rh_rx
+.ifdef ROM_ABI_C9
+        jc      rh_fail_rx
+.else
         jc      rh_fail
+.endif
         mov     c,a
         xra     b
         mov     b,a
@@ -331,13 +441,25 @@ rh_sync:
         cpi     'J'
         jnz     rh_sync
         call    rh_rxc
+.ifdef ROM_ABI_C9
+        jc      rh_fail_rx
+.else
         jc      rh_fail
+.endif
         mov     c,a
         lda     RHSEQ
         cmp     c
+.ifdef ROM_ABI_C9
+        jnz     rh_fail_sequence
+.else
         jnz     rh_fail
+.endif
         call    rh_rxc
+.ifdef ROM_ABI_C9
+        jc      rh_fail_rx
+.else
         jc      rh_fail
+.endif
         sta     RHSTATUSBYTE
         lda     RHOP
         cpi     RHOP_TIME_GET
@@ -349,7 +471,11 @@ rh_sync:
         mvi     d,5
 rh_time_rx:
         call    rh_rxc
+.ifdef ROM_ABI_C9
+        jc      rh_fail_rx
+.else
         jc      rh_fail
+.endif
         mov     m,a
         inx     h
         dcr     d
@@ -365,7 +491,11 @@ rh_not_time:
         mvi     d,4
 rh_caps_rx:
         call    rh_rxc
+.ifdef ROM_ABI_C9
+        jc      rh_fail_rx
+.else
         jc      rh_fail
+.endif
         mov     m,a
         inx     h
         dcr     d
@@ -376,20 +506,36 @@ rh_not_caps:
         cpi     2
         jnz     rh_no_key
         call    rh_rxc
+.ifdef ROM_ABI_C9
+        jc      rh_fail_rx
+.else
         jc      rh_fail
+.endif
         sta     RHKEY
         mvi     a,0ffh
         sta     RHHAVE
 rh_no_key:
         call    rh_rx
+.ifdef ROM_ABI_C9
+        jc      rh_fail_rx
+.else
         jc      rh_fail
+.endif
         cmp     b
+.ifdef ROM_ABI_C9
+        jnz     rh_fail_integrity
+.else
         jnz     rh_fail
+.endif
         lda     RHSTATUSBYTE
         ora     a
         jz      rh_success
         cpi     2
+.ifdef ROM_ABI_C9
+        jnz     rh_fail_status
+.else
         jnz     rh_fail
+.endif
 rh_success:
         lda     RHEN
         ora     a
@@ -406,9 +552,53 @@ rh_reconnect_store:
 rh_success_enable:
         mvi     a,1
         sta     RHEN
+.ifdef ROM_ABI_C9
+        lda     RHFLAGS
+        ori     JROMHOSTFLAGDETECTED+JROMHOSTFLAGMIRROR
+        mov     c,a
+        lda     RHRECONNECT
+        ora     a
+        mov     a,c
+        jz      rh_success_flags
+        ori     JROMHOSTFLAGRECONNECT
+rh_success_flags:
+        sta     RHFLAGS
+.endif
         xra     a
         ret
 
+.ifdef ROM_ABI_C9
+rh_fail_tx:
+        mvi     a,JROMHOSTFAILTX
+        jmp     rh_fail_reason
+rh_fail_rx:
+        mvi     a,JROMHOSTFAILRX
+        jmp     rh_fail_reason
+rh_fail_sync:
+        mvi     a,JROMHOSTFAILSYNC
+        jmp     rh_fail_reason
+rh_fail_sequence:
+        mvi     a,JROMHOSTFAILSEQUENCE
+        jmp     rh_fail_reason
+rh_fail_integrity:
+        mvi     a,JROMHOSTFAILINTEGRITY
+        jmp     rh_fail_reason
+rh_fail_status:
+        mvi     a,JROMHOSTFAILSTATUS
+rh_fail_reason:
+        sta     RHLASTFAIL
+        lda     RHOP
+        sta     RHLASTOP
+        xra     a
+        sta     RHEN
+        sta     RHHAVE
+        sta     RHBACK
+        lda     RHFLAGS
+        ani     0f7h                    ; mirroring is currently disabled
+        sta     RHFLAGS
+        mvi     a,1
+        ret
+.else
 rh_fail:
         xra     a
         sta     RHEN
@@ -418,6 +608,7 @@ rh_fail:
         sta     RHLASTFAIL
         mvi     a,1
         ret
+.endif
 
 rh_send:
         mov     c,a
@@ -425,6 +616,31 @@ rh_send:
         mov     b,a
         mov     a,c
 rh_tx:
+.ifdef ROM_ABI_C9
+        ; Preserve the wire checksum in B and the caller's C while imposing a
+        ; finite transmitter-ready wait. The character itself stays on stack.
+        push    psw
+        push    b
+        lxi     b,RH_TX_POLLS
+rh_tx_wait:
+        in      RHUSARTCTL
+        ani     1
+        jnz     rh_tx_ready
+        dcx     b
+        mov     a,b
+        ora     c
+        jnz     rh_tx_wait
+        pop     b
+        pop     psw
+        stc
+        ret
+rh_tx_ready:
+        pop     b
+        pop     psw
+        out     RHUSARTDATA
+        ora     a
+        ret
+.else
         mov     c,a
 rh_tx_wait:
         in      RHUSARTCTL
@@ -433,6 +649,7 @@ rh_tx_wait:
         mov     a,c
         out     RHUSARTDATA
         ret
+.endif
 
 rh_rx:
         push    b
