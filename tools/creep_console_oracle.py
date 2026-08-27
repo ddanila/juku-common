@@ -145,7 +145,7 @@ def render_transcript(transcript: bytes, *, cursor: bool = True,
                 glyph = reference[character]
             elif (locale, character) in locale_reference:
                 glyph = locale_reference[(locale, character)]
-            elif mode == 3 and character in reference:
+            elif character in reference:
                 glyph = reference[character]
             else:
                 glyph = reference[ord("?")]
