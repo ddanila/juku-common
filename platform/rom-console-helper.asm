@@ -12,6 +12,15 @@
 MODEPORT        equ     006h
 VRAM            equ     0d800h
 SCREENBYTES     equ     9600
+.ifdef ROM_ABI_C11
+; The stock-compatible modes expose one physical scanline beyond their text
+; surface: 40 bytes in modes 0/1 and 48 bytes in mode 2.  Clearing the largest
+; raster envelope is safe in every mode and prevents stale RAM from appearing
+; as a persistent bottom line.  Text drawing and scrolling remain 9,600 bytes.
+CLEARBYTES      equ     9648
+.else
+CLEARBYTES      equ     SCREENBYTES
+.endif
 SCROLLBYTES     equ     9200
 ROWBYTES        equ     400
 VIDSTRIDE       equ     50
@@ -101,7 +110,7 @@ RCHELP_COPY:
 
 RCHELP_CLEAR:
         lxi     h,VRAM
-        lxi     b,SCREENBYTES
+        lxi     b,CLEARBYTES
 RCHELP_ZERO:
 RCHELP_ZERO1:
         xra     a
