@@ -1,4 +1,4 @@
-; Strong-CRC streaming extension for Fast stages v3, v5-v7, and v14.
+; Strong-CRC streaming extension for Fast stages v3, v5-v7, and v14-v16.
 ; Copyright (c) 2026 Danila Sukharev
 ; BSD-2-Clause; see ../LICENSE-BSD-2-Clause.
 ;
@@ -85,6 +85,15 @@ PROTOCOL_VERSION equ    3
         sta     BOOTSTAGE
 .endif
 session:
+.ifdef FASTBOOT_C11_DISCOVERY
+        ; C11's host may attach while CP/M is already alive, so it initially
+        ; listens passively at NetDisk's 19200/8O1.  Advertise the boot loader
+        ; in that framing, then return to V16's 19200/8N1.  Repeating the
+        ; checked beacon after an idle scanner timeout makes a late host and a
+        ; reset during NetDisk distinguishable without any speculative host
+        ; byte being injected into a running program.
+        call    send_boot_beacon
+.endif
         call    send_ready
 
 .ifdef FASTBOOT_ZX0
@@ -93,11 +102,21 @@ session:
         ; The CRC authenticates the compressed representation; a valid
         ; deterministic stream therefore authenticates its output too.
 find_j:
+.ifdef FASTBOOT_C11_DISCOVERY
+        call    rx_scanner
+        jc      session
+.else
         call    rx
+.endif
         cpi     'J'
         jnz     find_j
 find_z:
+.ifdef FASTBOOT_C11_DISCOVERY
+        call    rx_scanner
+        jc      session
+.else
         call    rx
+.endif
         cpi     'Z'
 .ifdef FASTBOOT_STREAM_ACK
         jz      stream_header
@@ -345,6 +364,69 @@ restore_8o1:
         out     USARTCTL
         in      USARTDATA
         ret
+
+.ifdef FASTBOOT_C11_DISCOVERY
+; Return from the discovery framing to Fastboot V16's 19200/8N1.
+set_8n1:
+        xra     a
+        out     USARTCTL
+        out     USARTCTL
+        out     USARTCTL
+        mvi     a,040h
+        out     USARTCTL
+        mvi     a,04eh
+        out     USARTCTL
+        mvi     a,035h
+        out     USARTCTL
+        in      USARTDATA
+        ret
+
+; A complete 8251 transmit drain is required before either mode reset.  The
+; checked frame is sent twice so a host reconfiguration racing the first copy
+; still has another complete copy; accepting one valid copy is sufficient.
+send_boot_beacon:
+        call    tx_empty
+        call    restore_8o1
+        mvi     c,2
+beacon_repeat:
+        push    b
+        lxi     h,boot_beacon_frame
+        mvi     b,5
+        call    send_frame
+        pop     b
+        dcr     c
+        jnz     beacon_repeat
+        call    tx_empty
+        call    set_8n1
+        ret
+
+tx_empty:
+        in      USARTCTL
+        ani     4
+        jz      tx_empty
+        ret
+
+; Only the overlap-safe J/Z scanner is timed.  Once JZ is accepted, length,
+; body and CRC remain blocking so a slow but live host cannot cause a partial
+; payload to be decoded.  At 1.7 MHz this 65,536-iteration poll is roughly a
+; one-second discovery interval; carry marks an idle timeout.
+rx_scanner:
+        lxi     b,0
+rx_scanner_poll:
+        in      USARTCTL
+        ani     2
+        jnz     rx_scanner_byte
+        dcx     b
+        mov     a,b
+        ora     c
+        jnz     rx_scanner_poll
+        stc
+        ret
+rx_scanner_byte:
+        in      USARTDATA
+        ora     a                       ; clear carry, preserve received byte
+        ret
+.endif
 .endif
 .endif
 
@@ -434,13 +516,24 @@ ready_frame:
         db      'J' xor 'R' xor PROTOCOL_VERSION xor 1
 success_frame:
         db      'J','A',0,0,'J' xor 'A'
+.ifdef FASTBOOT_C11_DISCOVERY
+boot_beacon_frame:
+        db      'J','B',11,1
+        db      'J' xor 'B' xor 11 xor 1
+.endif
 
 extension_end:
 .ifdef FASTBOOT_ZX0
 .ifdef FASTBOOT_V16
+.ifdef FASTBOOT_C11_DISCOVERY
+        .if     extension_end-0300h > 512
+        .error  "C11 Fastboot v16 resident extension exceeds four records"
+        .endif
+.else
         .if     extension_end-0300h > 384
         .error  "Fastboot v16 resident extension exceeds three records"
         .endif
+.endif
 .else
 .ifdef FASTBOOT_TIGHT
 .ifdef FASTBOOT_V15
@@ -458,11 +551,11 @@ extension_end:
         .endif
 .endif
 .endif
-.endif
 .else
         .if     extension_end-0300h > 384
         .error  "Fastboot v6 extension exceeds three records"
         .endif
+.endif
 .endif
 .else
         .if     extension_end-0300h > 256
