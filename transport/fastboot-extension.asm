@@ -1,11 +1,11 @@
-; Strong-CRC streaming extension for Fast stages v3, v5-v7, and v14-v16.
+; Strong-CRC streaming extension for Fast stages v3, v5-v7, and v14-v17.
 ; Copyright (c) 2026 Danila Sukharev
 ; BSD-2-Clause; see ../LICENSE-BSD-2-Clause.
 ;
-; The one-record core installs this at 0300h after selecting 19200. V3/v5
-; receive the fixed 6656-byte resident system directly; v6/v7/v14 authenticate
-; and expand one length-bounded ZX0 stream. V7 embeds its immutable length and
-; CRC in the authenticated extension. V14 combines that deterministic,
+; The one-record core installs this at 0300h after selecting its declared link
+; rate. V3/v5 receive the fixed 6656-byte resident system directly;
+; v6/v7/v14 authenticate and expand one length-bounded ZX0 stream. V7 embeds
+; its immutable length and CRC in the authenticated extension. V14 combines that deterministic,
 ; receive-before-decode path with overlap-safe marker parsing and an explicit
 ; payload-ready acknowledgement. A bad stream restarts and is retransmitted in
 ; full. The compact byte-wise CRC transform is adapted from Aram Perez, IEEE
@@ -60,6 +60,10 @@ COMPRESSED_LIMIT equ    01800h
 .ifdef FASTBOOT_V16
 PROTOCOL_VERSION equ    16
 .else
+.ifdef FASTBOOT_V17
+PROTOCOL_VERSION equ    17
+rx              equ     0173h
+.else
 .ifdef FASTBOOT_TIGHT
 .ifdef FASTBOOT_V15
 PROTOCOL_VERSION equ    15
@@ -75,6 +79,7 @@ rx              equ     016eh
 .endif
 .else
 PROTOCOL_VERSION equ    6
+.endif
 .endif
 .endif
 .else
@@ -519,8 +524,13 @@ rx:
 .endif
 
 ready_frame:
+.ifdef FASTBOOT_9600
+        db      'J','R',PROTOCOL_VERSION,0
+        db      'J' xor 'R' xor PROTOCOL_VERSION
+.else
         db      'J','R',PROTOCOL_VERSION,1
         db      'J' xor 'R' xor PROTOCOL_VERSION xor 1
+.endif
 success_frame:
         db      'J','A',0,0,'J' xor 'A'
 .ifdef FASTBOOT_DISCOVERY_VERSION
@@ -543,6 +553,11 @@ extension_end:
 .endif
 .else
 .ifdef FASTBOOT_TIGHT
+.ifdef FASTBOOT_V17
+        .if     extension_end-0300h > 640
+        .error  "Fastboot v17 extension exceeds five records"
+        .endif
+.else
 .ifdef FASTBOOT_V15
         .if     extension_end-0300h > 640
         .error  "Fastboot v15 extension exceeds five records"
@@ -556,6 +571,7 @@ extension_end:
         .if     extension_end-0300h > 256
         .error  "Fastboot v7 extension exceeds two records"
         .endif
+.endif
 .endif
 .endif
 .else

@@ -5,8 +5,10 @@
 ; The bundle builder pads this executable to exactly one 128-byte Janet
 ; record and appends a separately assembled extension. V3-v8 describe that
 ; extension in padded records; v9 carries its exact byte count. Only the core
-; record travels through stock 9600. It switches D57/D11 to proven 19200/8O1,
-; receives the extension at 0300h, protects it with Fletcher-16, and enters it.
+; record travels through stock 9600. The historical fast variants switch
+; D57/D11 to proven 19200, while V17 deliberately retains the stock-ROM
+; mode-3/count-8 9600/8O1 framing for reset-safe host recovery. It receives the
+; extension at 0300h, protects it with Fletcher-16, and enters it.
 ; A malformed transfer is ignored; the host retransmission supplies enough
 ; bytes for the fixed-length receiver to finish, reject, and resynchronise
 ; without growing a timeout into the core.
@@ -42,6 +44,9 @@ EXTENSION_SIZE  equ     0100h
 .ifdef FASTBOOT_V16
         db      'J','F','1','6'
 .else
+.ifdef FASTBOOT_V17
+        db      'J','F','1','7'
+.else
 .ifdef FASTBOOT_V15
         db      'J','F','1','5'
 .else
@@ -64,6 +69,7 @@ EXTENSION_SIZE  equ     0100h
         db      'J','F','V','9'
 .else
         db      'J','F','V','8'
+.endif
 .endif
 .endif
 .endif
@@ -100,6 +106,11 @@ start:
 .ifdef FASTBOOT_V16
         lxi     sp,03ff0h
 .else
+.ifdef FASTBOOT_V17
+        ; V17 uses the same CP/M Plus RAM layout and compression workspace as
+        ; V15, but never leaves the stock 9600/8O1 serial configuration.
+        lxi     sp,03ff0h
+.else
 .ifdef FASTBOOT_V15
         ; V15 expands a larger 51K system from B000h.  Keep the loader stack
         ; below the compressed input at 4000h so decompression cannot overwrite
@@ -109,15 +120,26 @@ start:
         lxi     sp,0b3f0h
 .endif
 .endif
+.endif
 .ifndef FASTBOOT_PROBE_SYNC
         mvi     a,0ffh
         out     PICMASK
         sta     PICSHADOW
 .endif
 
+.ifdef FASTBOOT_9600
+        ; Re-establish the exact stock NetBios clock explicitly. EktaSoft's
+        ; boot code selects channel 0 mode 3/LSB/BCD (1Fh), and NetBios writes
+        ; count 8 for nominal 9600/x16. Keeping this setting through Fastboot
+        ; lets a reset return to Janet without a host-side baud transition.
+        mvi     a,01fh
+        out     PITCTL
+        mvi     a,8
+.else
         mvi     a,015h                  ; D57 ch0 mode 2, LSB, BCD
         out     PITCTL
         mvi     a,4
+.endif
         out     PITCOUNT0
 
         ; Canonical D11 reset, then x16/8O1 (v3) or 8N1 (v5).
