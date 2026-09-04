@@ -7,6 +7,9 @@
 
 JROMABIBASE     equ     0ff00h
 JROMABIMAJOR    equ     1
+.ifdef ROM_ABI_C12
+JROMABIMINOR    equ     5
+.else
 .ifdef ROM_ABI_C9
 JROMABIMINOR    equ     4
 .else
@@ -20,6 +23,7 @@ JROMABIMINOR    equ     2
 JROMABIMINOR    equ     1
 .else
 JROMABIMINOR    equ     0
+.endif
 .endif
 .endif
 .endif
@@ -51,6 +55,7 @@ JROMFKEYREMAP   equ     0100h
 JROMFCONBLOCK   equ     0200h
 JROMFNETMULTI   equ     0400h
 JROMFKEYRAW     equ     0800h
+JROMFCONCONFIG  equ     1000h
 
 ; Fixed three-byte JMP vectors. ABI minor versions may append behavior but
 ; must never move or change an existing vector's calling convention.
@@ -81,6 +86,20 @@ JROMKEYRAW      equ     JROMABIBASE+059h
 .ifdef ROM_ABI_HOSTSERVICES
 JROMHOST        equ     JROMABIBASE+05ch
 .endif
+.ifdef ROM_ABI_C12
+JROMCONCONFIG   equ     JROMABIBASE+05fh
+.endif
+
+; ABI 1.5 console-configuration selectors and override flags. QUERY returns
+; the reset-latched S21 byte in A, active video mode in B, active character
+; bank in C, and override flags in D. SET consumes B/C; DEFAULT consumes no
+; arguments. SET and DEFAULT clear/reinitialize the display atomically from
+; the caller's perspective.
+JROMCONCONFIGQUERY equ  0
+JROMCONCONFIGSET equ    1
+JROMCONCONFIGDEFAULT equ 2
+JROMCONOVERRIDEVIDEO equ 1
+JROMCONOVERRIDELOCALE equ 2
 
 ; ABI 1.3 JROMHOST selectors. One selector vector preserves the fixed low-RAM
 ; gate envelope while moving the complete N4/host transport into resident ROM.
@@ -165,4 +184,7 @@ JCGKEYRAWADDR   equ     JROMGATEBASE+039h
 .endif
 .ifdef ROM_ABI_HOSTSERVICES
 JCGHOSTADDR     equ     JROMGATEBASE+03ch
+.endif
+.ifdef ROM_ABI_C12
+JCGCONCONFIGADDR equ    JROMGATEBASE+03fh
 .endif

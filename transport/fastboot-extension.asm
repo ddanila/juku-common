@@ -13,6 +13,13 @@
 
 USARTDATA       equ     008h
 USARTCTL        equ     009h
+.ifdef FASTBOOT_C12_DISCOVERY
+FASTBOOT_DISCOVERY_VERSION equ 12
+.else
+.ifdef FASTBOOT_C11_DISCOVERY
+FASTBOOT_DISCOVERY_VERSION equ 11
+.endif
+.endif
 .ifdef FASTBOOT_BOOT_RECORD
 BOOTSTAGE       equ     0d611h
 BOOTRETRIES     equ     0d612h
@@ -85,8 +92,8 @@ PROTOCOL_VERSION equ    3
         sta     BOOTSTAGE
 .endif
 session:
-.ifdef FASTBOOT_C11_DISCOVERY
-        ; C11's host may attach while CP/M is already alive, so it initially
+.ifdef FASTBOOT_DISCOVERY_VERSION
+        ; C11/C12's host may attach while CP/M is already alive, so it initially
         ; listens passively at NetDisk's 19200/8O1.  Advertise the boot loader
         ; in that framing, then return to V16's 19200/8N1.  Repeating the
         ; checked beacon after an idle scanner timeout makes a late host and a
@@ -102,7 +109,7 @@ session:
         ; The CRC authenticates the compressed representation; a valid
         ; deterministic stream therefore authenticates its output too.
 find_j:
-.ifdef FASTBOOT_C11_DISCOVERY
+.ifdef FASTBOOT_DISCOVERY_VERSION
         call    rx_scanner
         jc      session
 .else
@@ -111,7 +118,7 @@ find_j:
         cpi     'J'
         jnz     find_j
 find_z:
-.ifdef FASTBOOT_C11_DISCOVERY
+.ifdef FASTBOOT_DISCOVERY_VERSION
         call    rx_scanner
         jc      session
 .else
@@ -365,7 +372,7 @@ restore_8o1:
         in      USARTDATA
         ret
 
-.ifdef FASTBOOT_C11_DISCOVERY
+.ifdef FASTBOOT_DISCOVERY_VERSION
 ; Return from the discovery framing to Fastboot V16's 19200/8N1.
 set_8n1:
         xra     a
@@ -516,18 +523,18 @@ ready_frame:
         db      'J' xor 'R' xor PROTOCOL_VERSION xor 1
 success_frame:
         db      'J','A',0,0,'J' xor 'A'
-.ifdef FASTBOOT_C11_DISCOVERY
+.ifdef FASTBOOT_DISCOVERY_VERSION
 boot_beacon_frame:
-        db      'J','B',11,1
-        db      'J' xor 'B' xor 11 xor 1
+        db      'J','B',FASTBOOT_DISCOVERY_VERSION,1
+        db      'J' xor 'B' xor FASTBOOT_DISCOVERY_VERSION xor 1
 .endif
 
 extension_end:
 .ifdef FASTBOOT_ZX0
 .ifdef FASTBOOT_V16
-.ifdef FASTBOOT_C11_DISCOVERY
+.ifdef FASTBOOT_DISCOVERY_VERSION
         .if     extension_end-0300h > 512
-        .error  "C11 Fastboot v16 resident extension exceeds four records"
+        .error  "Discovery Fastboot v16 resident extension exceeds four records"
         .endif
 .else
         .if     extension_end-0300h > 384

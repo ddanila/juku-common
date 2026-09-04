@@ -190,3 +190,10 @@ input/output byte pairs with `RKSETREMAP`. The driver copies the pairs into
 resident state, so the program that selected the per-machine workaround need
 not remain loaded. ABI 1.1 and later expose the same bounded facility through
 `JCGKEYREMAP` without changing keyboard scan or translation semantics.
+
+ABI 1.5 adds `JCGCONCONFIG` for a resident-ROM-owned runtime change of video
+mode and character bank. The service distinguishes the reset-latched S21
+default from the active configuration and independent override flags. A valid
+set/default request clears and reinitializes the display as one synchronous
+operation; invalid values leave all state unchanged. Warm boot preserves an
+override, while reset or `JCGINIT` restores S21.

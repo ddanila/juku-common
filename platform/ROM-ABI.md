@@ -112,6 +112,25 @@ records the specific reason, and returns. Local console output remains
 authoritative. The C9 implementation uses 29 bytes at `D7E0h..D7FCh`; the
 gate/work reservation and operating-system TPA do not grow.
 
+ABI 1.5 appends one runtime-console-configuration vector and advertises
+`JROMFCONCONFIG`. It fills the final five bytes of the fixed 224-byte low-RAM
+gate envelope without moving any earlier vector or increasing the fixed
+`D600h..D7FFh` workspace:
+
+| gate / ROM vector | feature | contract |
+| --- | --- | --- |
+| `JCGCONCONFIG` / `FF5Fh` | `JROMFCONCONFIG` | A selects query (0), set (1), or reset default (2). Query returns reset-latched S21 in A, active video mode in B, active character bank in C, and override flags in D. Set consumes B/C in range 0..3, then hides the cursor, changes timing/font policy, clears the framebuffer, resets position/blink state, and publishes the complete new state. Default atomically reapplies S21 bits 4:1. Invalid selectors or values return A=FFh/CY set without changing active state or pixels. |
+
+An explicit override survives a CP/M warm boot and ordinary console
+reinitialization. Reset or a controlled `JCGINIT` restores the latched S21
+default. Video and character-bank override flags are computed independently,
+so returning just one field to its default is observable. Console calls are
+synchronous and interrupts remain disabled under the existing ABI ownership;
+no writer can observe a partially reconfigured display. The active byte and
+flags occupy `D7FDh..D7FEh`, after the 29-byte resident-host block and before
+the final reserved workspace byte; they do not overlap console, key-remap, or
+per-drive NetDisk state.
+
 `JCGDIAG` retains selector zero (`A=00h`) as the `A5h` capability marker. ABI
 1.3 additionally defines selectors 1..8 for CPU, private scratch-RAM data,
 scratch-RAM address, scratch-cell retention, complete resident-ROM additive
