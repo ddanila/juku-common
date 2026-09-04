@@ -195,5 +195,7 @@ ABI 1.5 adds `JCGCONCONFIG` for a resident-ROM-owned runtime change of video
 mode and character bank. The service distinguishes the reset-latched S21
 default from the active configuration and independent override flags. A valid
 set/default request clears and reinitializes the display as one synchronous
-operation; invalid values leave all state unchanged. Warm boot preserves an
-override, while reset or `JCGINIT` restores S21.
+operation, discards pending key state, and preserves installed key-remap pairs;
+invalid values leave all state unchanged. Warm boot preserves an override,
+while reset or `JCGINIT` restores S21 and performs the normal full keyboard
+initialization that clears remaps.

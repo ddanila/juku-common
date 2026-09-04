@@ -119,7 +119,7 @@ gate envelope without moving any earlier vector or increasing the fixed
 
 | gate / ROM vector | feature | contract |
 | --- | --- | --- |
-| `JCGCONCONFIG` / `FF5Fh` | `JROMFCONCONFIG` | A selects query (0), set (1), or reset default (2). Query returns reset-latched S21 in A, active video mode in B, active character bank in C, and override flags in D. Set consumes B/C in range 0..3, then hides the cursor, changes timing/font policy, clears the framebuffer, resets position/blink state, and publishes the complete new state. Default atomically reapplies S21 bits 4:1. Invalid selectors or values return A=FFh/CY set without changing active state or pixels. |
+| `JCGCONCONFIG` / `FF5Fh` | `JROMFCONCONFIG` | A selects query (0), set (1), or reset default (2). Query returns reset-latched S21 in A, active video mode in B, active character bank in C, and override flags in D. Set consumes B/C in range 0..3, then hides the cursor, changes timing/font policy, clears the framebuffer, resets position/blink and pending-key state, preserves the installed key-remap table, and publishes the complete new state. Default atomically reapplies S21 bits 4:1 with the same keyboard-state policy. Invalid selectors or values return A=FFh/CY set without changing active state or pixels. |
 
 An explicit override survives a CP/M warm boot and ordinary console
 reinitialization. Reset or a controlled `JCGINIT` restores the latched S21
@@ -130,6 +130,11 @@ no writer can observe a partially reconfigured display. The active byte and
 flags occupy `D7FDh..D7FEh`, after the 29-byte resident-host block and before
 the final reserved workspace byte; they do not overlap console, key-remap, or
 per-drive NetDisk state.
+
+Runtime console changes discard debounce and pending translated-key state so
+input sampled under the old locale cannot leak into the new one. They preserve
+all installed `JCGKEYREMAP` pairs. A reset or full `JCGINIT` continues to clear
+the remap table as part of normal keyboard initialization.
 
 `JCGDIAG` retains selector zero (`A=00h`) as the `A5h` capability marker. ABI
 1.3 additionally defines selectors 1..8 for CPU, private scratch-RAM data,
