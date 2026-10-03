@@ -26,6 +26,8 @@ bytes, requires the same major version and a ROM minor version no older than
 the consumer, calls fixed-vector `JROMINIT`, records its result in low RAM, and
 returns `A=00h` or `A=FFh`.
 Consumers reject a mismatch cleanly; they never probe incidental ROM code.
+Service dispatch does not recheck `JCGREADY`, the manifest or feature bits.
+The caller must enforce successful initialization and optional-feature checks.
 
 Unless an entry says otherwise, AF, BC, DE, and HL may be destroyed, SP is
 restored exactly, and no memory outside the fixed ROM workspace and explicit
@@ -38,7 +40,7 @@ forever.
 | --- | --- |
 | `JCGCONINIT` / `FF23h` | Initialize console timing, clear the screen, and reset position/cursor. ABI 1.0 uses fixed 80x24 MODX timing; ABI 1.1 uses reset-latched S21 bits 2:1 for 40x24, 53x24, 64x20, or 80x24. `A=0` success. |
 | `JCGCONSTAT` / `FF26h` | `A=00h` no key, `A=FFh` key ready; advances the cursor blink. |
-| `JCGCONIN` / `FF29h` | Bounded/local blocking input under the polled platform contract; returns character in A. |
+| `JCGCONIN` / `FF29h` | Blocking local input: polls until a key event is available, then returns the character in A. No overall timeout. |
 | `JCGCONOUT` / `FF2Ch` | Input A is one character; supports CR/LF/backspace and `ESC L`; returns after local pixels are committed. |
 | `JCGSERINIT` / `FF2Fh` | A=0 selects 19,200/8N1 bootstrap, A=1 selects 19,200/8O1 disk framing; returns A=0 or FFh. |
 | `JCGSERRX` / `FF32h` | BC is a nonzero poll bound; CY clear and A=data, or CY set on timeout/error. |
