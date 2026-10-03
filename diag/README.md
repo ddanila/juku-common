@@ -10,8 +10,8 @@ Interface for `diag_memory_test`:
 - output: `A` is zero on success and nonzero if any tested bit disagreed;
 - preserved: `DE` and every byte in the tested range;
 - destroyed: `A`, `BC`, `HL`, and flags;
-- precondition: the range does not wrap through `0000h` and must not contain
-  live stack or code storage.
+- precondition: `HL < DE` at entry; the range must be nonempty, must not wrap
+  through `0000h`, and must not contain live stack or code storage.
 
 The routine is intentionally independent of CP/M and Jukuravi I/O, and uses no
 stack space beyond its CALL return address. Those environments supply their own
@@ -49,7 +49,9 @@ not disable refresh.
 
 `checksum.asm` provides `diag_checksum8`. `HL` and `DE` delimit a half-open
 range and `A` receives its eight-bit additive checksum. DE and the checked
-bytes are preserved; A, C, HL and flags are destroyed. A ROM front end can
+bytes are preserved; A, C, HL and flags are destroyed. The range must be
+nonempty with `HL < DE` at entry; the loop does not accept an empty range.
+A ROM front end can
 compare this result with a stored checksum, while a RAM program can use the
 same primitive without embedding ROM layout policy in the common source.
 
@@ -69,27 +71,14 @@ family. Consumers provide the D26 column and row port constants.
 It is used by the CP/M front end for the fixed ROM ABI manifest and remains
 independent of memory-map policy.
 
-## Future shared diagnostic suite
+## Consumer policy
 
-Keep `diag_memory_test` and the current no-argument CP/M `DIAG.COM` wrapper as
-the small, non-destructive baseline. Future work should move the reusable test
-cores proven by the Jukuravi diagnostic ROMs into this directory and expose
-them through thin environment-specific front ends:
+Common routines provide mechanisms and structured results. Consumers own ROM
+beeps, serial framing, CP/M printing, test selection and reporting. Each front
+end must declare which memory, interrupt, timer, console and network state it
+modifies; intrusive tests require explicit selection.
 
-- ~~8080 instruction/flag and register-path tests;~~
-- ~~ROM integrity mechanism and RAM data/address/retention mechanisms,
-  including per-bit data/retention failure masks suitable for identifying
-  D84..D91;~~
-- PIC, PPI, and intrusive D54/D55 tests;
-- ~~safe D57 channel-0 and local 8251 status tests;~~
-- framebuffer/video-path and clock/timing probes where they are safe under a
-  running system.
-
-The common routines should contain mechanisms and structured results, not ROM
-beeps, serial framing, CP/M printing, or test policy. Jukuravi can continue to
-provide the reset-safe ROM/host interface, while `DIAG.COM` can grow a readable
-command-line selector and report results through CP/M. Every test must declare
-which memory, interrupt, timer, console, and network state it modifies; unsafe
-or destructive tests must be opt-in. Do not assume that a reset-time ROM test
-can run unchanged under CP/M: preserve the operating system, stack, RomBios
-interrupt dispatcher, raster/DRAM refresh, and Janet disk transport as needed.
+Reset-time ROM tests cannot be assumed safe under CP/M. Preserve the operating
+system, stack, RomBios interrupt dispatcher, raster/DRAM refresh and Janet disk
+transport. PIC, PPI, intrusive raster and framebuffer probes need a separate
+safety contract before being added to a running-system suite.
