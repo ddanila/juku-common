@@ -13,8 +13,11 @@ while retaining their own entry, completion, and timing contracts.
 
 The table label is `note_table`. Each of its twelve entries is a little-endian
 16-bit divisor followed by one-byte sounding and silent durations. D57 channel
-1 uses its nominal 2 MHz source clock; consumers use an eighth note of
-`60 / 112 / 2` seconds.
+1 uses its nominal 2 MHz source clock for pitch. The table's intended eighth
+note is `60 / 112 / 2` seconds. The supplied `smoke_play` implementation uses
+a fixed 22,321-iteration delay calibrated for a nominal 2 MHz CPU; it does not
+measure elapsed time or compensate for READY waits. Actual tempo follows the
+effective CPU execution rate, independently of the PIT's pitch clock.
 
 `smoke_play` takes no arguments, preserves memory and SP, destroys A/BC/DE/HL
 and flags, and leaves interrupts disabled. It touches only D57 channel 1;
