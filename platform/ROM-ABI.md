@@ -23,8 +23,9 @@ ABI 1 requires:
 
 `JCGINIT` may be called from any memory mode. It checks all eight signature
 bytes, requires the same major version and a ROM minor version no older than
-the consumer, calls fixed-vector `JROMINIT`, records its result in low RAM, and
-returns `A=00h` or `A=FFh`.
+the consumer, and calls fixed-vector `JROMINIT`. It returns `A=00h` on success
+with the low-RAM `JCGREADY` flag set to 1; rejection or nonzero `JROMINIT`
+status clears that flag and returns `A=FFh`.
 Consumers reject a mismatch cleanly; they never probe incidental ROM code.
 Service dispatch does not recheck `JCGREADY`, the manifest or feature bits.
 The caller must enforce successful initialization and optional-feature checks.
