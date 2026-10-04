@@ -22,9 +22,9 @@ CP/M Plus Juku port:
   per-machine keys;
 - `netdisk-v3.asm`: resilient three-record Janet read-ahead client;
 - `netconsole.asm`: optional resilient remote console;
-- `rom-host-services.asm`: ABI 1.3 resident N4 console, time, capability,
-  publication, bulk-output and reconnect transport using a fixed 27-byte
-  low-RAM state block;
+- `rom-host-services.asm`: resident N4 console, time, capability, publication,
+  bulk-output and reconnect transport. ABI 1.3 uses 27 low-RAM state bytes;
+  the `ROM_ABI_C9` profile (ABI 1.4 and later) uses 29 bytes;
 - `rom-abi.inc`: fixed network-first ROM manifest, feature, vector, and
   low-RAM ownership constants;
 - `rom-call-gate.asm`: signature/version-checking low-RAM dispatcher for the
@@ -87,6 +87,8 @@ drive before returning.
 
 Except for the separately attributed fonts, these files are Copyright (c)
 2026 Danila Sukharev and use `../LICENSE-BSD-2-Clause`.
+
+Run the commands below from `third_party/juku-common`.
 
 The active console font is derived from Creep 0.31. Its exact BDF URL and
 SHA-256 are pinned in `../tools/generate_creep_console_font.py`; the upstream
