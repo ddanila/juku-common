@@ -88,43 +88,44 @@ drive before returning.
 Except for the separately attributed fonts, these files are Copyright (c)
 2026 Danila Sukharev and use `../LICENSE-BSD-2-Clause`.
 
-Run the commands below from `third_party/juku-common`.
+## Console fonts
 
-The active console font is derived from Creep 0.31. Its exact BDF URL and
-SHA-256 are pinned in `../tools/generate_creep_console_font.py`; the upstream
-MIT terms and Romeo Van Snick attribution are in `LICENSE-CREEP`. Ordinary
-letters and digits reserve their rightmost pixel as a separator. CP437 box
-glyphs deliberately do the opposite: horizontal strokes occupy all five
-pixels, and vertical strokes occupy the first and last scanlines, so repeated
-cells form solid lines. The offline build needs no network or font package:
+Run these commands from `third_party/juku-common`. Ordinary assembly uses
+checked-in font tables and needs no font download or image library.
+
+### Active Creep and locale banks
+
+The active font derives from Creep 0.31. Its source URL and SHA-256 are pinned
+in `../tools/generate_creep_console_font.py`; `LICENSE-CREEP` retains the MIT
+terms and Romeo Van Snick attribution. Letters and digits reserve their
+rightmost pixel as a separator. CP437 horizontal and vertical strokes reach
+the cell edges so adjacent cells can form continuous lines.
+
+Run the offline source checks with:
 
 ```sh
 python3 tools/creep_console_oracle.py
 python3 tools/locale_console_oracle.py
 ```
 
-The oracle checks all 95 ASCII glyphs and the 26-glyph CP437 UI subset against
-the readable reference, including the single-line and VC-compatible
-double-line box repertoire. It enforces text separation and connected
-pseudographics, and independently renders all four video geometries.
+The Creep check compares 95 ASCII glyphs and the 26-glyph CP437 UI subset
+with the readable reference, also checking the legacy 17-glyph subset,
+separator columns and selected single/double-line connections. Its Python
+renderer supports all four video geometries; the standalone command checks
+sample locale differences in the default 80x24 mode. It does not execute the
+8080 renderer or test every geometry. Consumer ROM tests separately compare
+emulated framebuffer output with this oracle.
 
-The retained earlier font source is published as CC0 by domsson at
-<https://opengameart.org/content/ascii-bitmap-font-oldschool>. Download
-`charmap-oldschool_white.png` from that page and run:
+The locale check compares all 8 Estonian and 66 CP866 glyphs with their
+readable reference, including code order, separator columns and exclusion of
+CP437's B0h..DFh range. These offline checks establish agreement with the
+references, not the identity of the original font downloads.
 
-```sh
-python3 tools/generate_ram_console_font.py charmap-oldschool_white.png \
-  --check platform/ram-console-font.asm
-```
-
-Regeneration is optional and requires Pillow; ordinary assembly consumes the
-checked-in generated source and adds no image-library build dependency.
-
-The Estonian bank is generated from the same pinned MIT Creep 0.31 BDF. The
-Russian bank uses the public-domain Unicode 4x6 BDF distributed by u8g2 at
-commit `ab9e48b2228351e9476682a70b7f3ee4909cd585`; its URL and SHA-256 are
-pinned in `../tools/generate_locale_console_fonts.py`, and provenance is
-retained in `LICENSE-U8G2-4X6`. Regenerate or verify both compact banks with:
+The Estonian bank uses the same pinned Creep BDF. The Russian bank uses the
+public-domain u8g2 Unicode 4x6 BDF at commit
+`ab9e48b2228351e9476682a70b7f3ee4909cd585`; its URL and SHA-256 are pinned in
+`../tools/generate_locale_console_fonts.py`, with provenance retained in
+`LICENSE-U8G2-4X6`. Given those exact source files, verify both generated banks:
 
 ```sh
 python3 tools/generate_locale_console_fonts.py creep.bdf 4x6.bdf \
@@ -132,19 +133,32 @@ python3 tools/generate_locale_console_fonts.py creep.bdf 4x6.bdf \
   --assembly platform/locale-console-fonts.asm --check
 ```
 
-Its older offline oracle verifies all 95 generated glyphs against the readable
-source reference and can render a 400x192 PBM without executing the 8080
-renderer:
+This generator validates the input hashes. Omit `--check` to overwrite the
+named reference and assembly outputs.
+
+### Retained legacy font
+
+The earlier domsson CC0 source is published at
+<https://opengameart.org/content/ascii-bitmap-font-oldschool>. Optional
+regeneration requires Pillow and `charmap-oldschool_white.png` from that page:
+
+```sh
+python3 tools/generate_ram_console_font.py charmap-oldschool_white.png \
+  --check platform/ram-console-font.asm
+```
+
+The legacy oracle compares its 95 glyphs with the readable reference and can
+render a 400x192 PBM without executing 8080 code:
 
 ```sh
 python3 tools/ram_console_oracle.py \
   --render-text 'CP/M Plus 3.1 Juku | A> DIR' --pbm /tmp/juku-console.pbm
 ```
 
-That sprite sheet has an unusual nine-pixel vertical pitch: seven glyph rows,
-then two separator rows. The source reference and oracle deliberately keep
-that extraction fact separate from the generated table so a bad generator
-cannot validate itself.
+The source sprite sheet uses a nine-pixel vertical pitch: seven glyph rows and
+two separator rows. The independent reference preserves that extraction rule.
+
+## Resident ROM and console configuration
 
 Network-first ROM consumers call `JCGINIT` successfully before using another
 gate entry. The gate selects memory mode 1 without clobbering the caller's
