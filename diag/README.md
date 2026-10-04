@@ -43,7 +43,8 @@ HL, A and flags and needs five extra stack words.
 `memory-retention.asm` provides a non-destructive single-cell hold test. `HL`
 selects the writable byte and nonzero `BC` selects the delay-loop count. It
 holds `00h` and `FFh`, returns the accumulated data-bit mismatch mask in `A`,
-and restores the byte, HL and BC. The caller owns the clock/refresh policy and
+and restores the byte, HL and BC. It destroys DE, A and flags and needs two
+extra stack words beyond the CALL return address. The caller owns the clock/refresh policy and
 must ensure that its code and stack survive the hold; the common routine does
 not disable refresh.
 
@@ -67,9 +68,11 @@ previously selected keyboard column and does not call RomBios or a JukuNet ROM
 service, so a live CP/M front end can use the same mechanism with either ROM
 family. Consumers provide the D26 column and row port constants.
 
-`signature.asm` compares a caller-selected observed and expected byte string.
-It is used by the CP/M front end for the fixed ROM ABI manifest and remains
-independent of memory-map policy.
+`signature.asm` provides `diag_signature_test`: HL points to observed bytes,
+DE to expected bytes, and B is a nonzero byte count. It returns A=0 for an
+exact match or A=1 for a mismatch, preserves memory and C, and destroys A, B,
+DE, HL and flags. It is used by the CP/M front end for the fixed ROM ABI
+manifest and remains independent of memory-map policy.
 
 ## Consumer policy
 
