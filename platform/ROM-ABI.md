@@ -44,9 +44,9 @@ forever.
 | `JCGCONSTAT` / `FF26h` | `A=00h` no key, `A=FFh` key ready; advances the cursor blink. |
 | `JCGCONIN` / `FF29h` | Blocking local input: polls until a key event is available, then returns the character in A. No overall timeout. |
 | `JCGCONOUT` / `FF2Ch` | Input A is one character; supports CR/LF/backspace and `ESC L`; returns after local pixels are committed. |
-| `JCGSERINIT` / `FF2Fh` | A=0 selects 19,200/8N1 bootstrap, A=1 selects 19,200/8O1 disk framing; returns A=0 or FFh. |
-| `JCGSERRX` / `FF32h` | BC is a nonzero poll bound; CY clear and A=data, or CY set on timeout/error. |
-| `JCGSERTX` / `FF35h` | A=data and BC is a nonzero poll bound; CY clear on accepted byte, set on timeout/error. |
+| `JCGSERINIT` / `FF2Fh` | A=0 selects 19,200/8N1 bootstrap; any nonzero A selects 19,200/8O1 disk framing. Reprograms D57 channel 0 and D11, drains one receive byte, and returns A=0; no hardware-health check is performed. |
+| `JCGSERRX` / `FF32h` | BC is a nonzero poll bound; CY clear and A=data when RxRDY is observed, or CY set on timeout. PE/OE/FE are not checked. |
+| `JCGSERTX` / `FF35h` | A=data and BC is a nonzero poll bound; CY clear after writing the byte when TxRDY is observed, set on timeout. This does not wait for transmission completion or check USART error bits. |
 | `JCGNETDISK` / `FF38h` | HL points to the versioned low-RAM request block; returns A=0 success or a nonzero status and invalidates partial cache state on error. |
 | `JCGKEYINIT` / `FF3Bh` | Reset matrix/debounce state; A=0 success. |
 | `JCGKEYSCAN` / `FF3Eh` | Nonblocking translated event scan used by console policy; returns and consumes one debounced key event, or A=0 when none. A physical key must be released before another event is accepted. |
