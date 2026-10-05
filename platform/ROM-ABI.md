@@ -31,8 +31,9 @@ Service dispatch does not recheck `JCGREADY`, the manifest or feature bits.
 The caller must enforce successful initialization and optional-feature checks.
 
 Unless an entry says otherwise, AF, BC, DE, and HL may be destroyed, SP is
-restored exactly, and no memory outside the fixed ROM workspace and explicit
-caller buffers is modified. Bounded services report timeout rather than wait
+restored exactly. Memory writes are confined to stack storage, the fixed ROM
+workspace, explicit caller buffers, framebuffer operations, and the documented
+diagnostic scratch range. Bounded services report timeout rather than wait
 forever.
 
 ## Vector contracts
