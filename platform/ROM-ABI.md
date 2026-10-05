@@ -170,8 +170,13 @@ the v3 read-ahead cache, operation 1 invalidates it, operation 2 selects the
 mode in the drive byte (production uses 3), and operation 3 synchronously
 writes one 128-byte DMA record. Write invalidates read-ahead before its first
 attempt and never leaves cached data valid after an uncertain result. Reads and
-writes return A=0 or A=1 after bounded three-attempt recovery; malformed
-requests return FFh with carry set.
+writes return A=0 or A=1. Receive waits are bounded, and receive/integrity
+failures allow at most three attempts; a valid nonzero host status returns
+failure immediately. NetDisk transmit-ready waits and reply-prefix searches
+have no overall bound, including in ABI 1.4 and later: the host-service bounds
+do not apply to this separate transport. Unsupported request versions or
+operations return FFh with carry set; caller DMA/cache addresses and disk
+geometry remain caller responsibilities.
 
 `FF20h` is `JROMINIT`, used by the boot path after installing the gate and
 helper. It validates workspace/helper sizes, initializes fixed state, and
