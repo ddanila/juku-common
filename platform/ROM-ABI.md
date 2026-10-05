@@ -86,13 +86,16 @@ behavior remain unchanged:
 
 | gate / ROM vector | feature | contract |
 | --- | --- | --- |
-| `JCGHOST` / `FF5Ch` | `JROMFNETCON` | C selects a bounded N4/host operation: enable, explicit feature configuration, remote status/input/output, TIME get/set, status/diagnostic/bootstrap publication, capability query, 1..32-byte bulk output, or reconnect-state query. CP/M-specific SCB commit and console policy remain in the caller. |
+| `JCGHOST` / `FF5Ch` | `JROMFNETCON` | C selects an N4/host operation: enable, explicit feature configuration, remote status/input/output, TIME get/set, status/diagnostic/bootstrap publication, capability query, 1..32-byte bulk output, or reconnect-state query. CP/M-specific SCB commit and console policy remain in the caller. |
 
 The host implementation owns wire framing, checksum, turnaround, timeout,
 duplicate-safe operation sequencing, cached remote input, capability/time
 reply buffers and reconnect counters. Its 27 mutable bytes live in the fixed
 ROM workspace; no initialized host-transport code or state is required in a
 consumer's system image. Unknown selectors return `A=FFh` with carry set.
+ABI 1.3 bounds individual receive waits and payload lengths, but its
+transmit-ready wait and reply-prefix search have no overall bound. Consumers
+requiring bounded recovery must use ABI 1.4 or later.
 
 ABI 1.4 retains `JCGHOST` at `FF5Ch` and every selector/calling convention,
 then extends the state returned by selector `JROMHOSTSTATE`. The ABI 1.3
