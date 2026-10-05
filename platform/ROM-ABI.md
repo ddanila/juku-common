@@ -50,7 +50,7 @@ forever.
 | `JCGKEYINIT` / `FF3Bh` | Reset matrix/debounce state; A=0 success. |
 | `JCGKEYSCAN` / `FF3Eh` | Nonblocking translated event scan used by console policy; returns and consumes one debounced key event, or A=0 when none. A physical key must be released before another event is accepted. |
 | `JCGSOUND` / `FF41h` | A selects a built-in bounded cue; A=0 is silence, A=1 the diagnostic phrase. |
-| `JCGDIAG` / `FF44h` | A selects a documented mechanism, HL points to its argument/result block; A is the structured result. Destructive tests are never implicit. |
+| `JCGDIAG` / `FF44h` | A selects a documented mechanism and returns its structured result; HL is not an argument block. Selectors 2–4 use the fixed scratch range described below. |
 | `JCGGETINFO` / `FF47h` | Returns HL=manifest address and DE=feature bits; no other state changes. |
 
 ABI 1.1 appends two optional vectors when `JROMFLOCALE`/`JROMFKEYREMAP` are
@@ -146,8 +146,13 @@ the remap table as part of normal keyboard initialization.
 1.3 additionally defines selectors 1..8 for CPU, private scratch-RAM data,
 scratch-RAM address, scratch-cell retention, complete resident-ROM additive
 integrity, D57 channel-0, D11 error status and retained reset-POST status.
-Every selector is bounded and non-destructive outside the ROM-owned scratch
-and state bytes. Whole-memory and intrusive peripheral tests remain outside
+Selectors 2–4 temporarily test `D5C0h..D5DFh` (selector 4 uses its first
+byte), restoring the tested bytes before return. This range lies below the
+`D600h..D7FFh` ABI workspace; callers must keep live code, stack and data out
+of it during these diagnostics. HL does not select a caller buffer. Selector
+5 returns the additive checksum of `D800h..FFFFh`; selector 8 returns the
+retained POST byte at `D610h`. Every selector is bounded and non-destructive
+outside the diagnostic scratch, stack and ROM state bytes. Whole-memory and intrusive peripheral tests remain outside
 the live operating-system ABI.
 
 The ABI 1.1 console keeps the same resident text policy in every geometry.
