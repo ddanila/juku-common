@@ -20,8 +20,7 @@ entry point, safe range, reporting, and policy.
 `cpu.asm` provides `diag_cpu_test`, an origin-independent and I/O-free 8080
 CPU core. It checks arithmetic/logical results and flags, all four rotates,
 INR/DCR carry preservation, DAA, BC/DE/HL increment paths, DAD, INX SP, and
-PUSH/POP byte order. It specifically covers the high-bit INX failure observed
-in CS00015's former D1. The routine returns a structured byte in A:
+PUSH/POP byte order. The routine returns a structured byte in A:
 
 - `00h`: pass;
 - `01h`: ALU, flag, rotate, or DAA failure;
