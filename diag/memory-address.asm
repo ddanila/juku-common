@@ -5,7 +5,7 @@
 ; Output: A = zero on success, one if any pair did not remain independent.
 ; Preserved: every tested byte.
 ; Destroyed: A, BC, DE, HL, and flags.
-; Stack: five extra words beyond the CALL return address.
+; Stack: four extra words beyond the CALL return address.
 ;
 ; The two locations are restored after every comparison.  This is deliberately
 ; a separate mechanism from the byte-cell/data-lane test in memory.asm: a

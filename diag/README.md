@@ -41,7 +41,7 @@ test. `HL` is an aligned base byte and `A` is the number of address bits
 (1..15); the routine compares the base with every `base+(1<<n)` location,
 restores every byte, and returns zero or one in `A`. The complete tested span
 must be writable and must not contain live code or stack. It destroys BC, DE,
-HL, A and flags and needs five extra stack words.
+HL, A and flags and needs four extra stack words beyond the CALL return address.
 
 `memory-retention.asm` provides a non-destructive single-cell hold test. `HL`
 selects the writable byte and nonzero `BC` selects the delay-loop count. It
