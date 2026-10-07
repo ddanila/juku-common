@@ -117,9 +117,10 @@ sample locale differences in the default 80x24 mode. It does not execute the
 emulated framebuffer output with this oracle.
 
 The locale check compares all 8 Estonian and 66 CP866 glyphs with their
-readable reference, including code order, separator columns and exclusion of
-CP437's B0h..DFh range. These offline checks establish agreement with the
-references, not the identity of the original font downloads.
+readable reference. It checks the reference's code order, separator columns
+and exclusion of CP437's B0h..DFh range; it does not compare the assembly's
+code tables. These offline checks establish agreement with the references,
+not the identity of the original font downloads.
 
 The Estonian bank uses the same pinned Creep BDF. The Russian bank uses the
 public-domain u8g2 Unicode 4x6 BDF at commit
