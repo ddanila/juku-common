@@ -179,6 +179,11 @@ the next resident service remains callable. A fully RAM-owned BIOS defines
 `RAMKEYBOARD`, the console restores mode 1 even when `RAMCONSOLE_MODE1`
 is absent.
 
+The RAM console enters pixel operations with `DI`; its `RAMNORMAL` helper
+executes `EI` after restoring the selected memory mode. These operations do
+not preserve the caller's interrupt state. Consumers own the interrupt policy
+when integrating this console with resident ROM services.
+
 An all-RAM consumer reads S21 on each `RAMCONINIT`; bits 2:1 select the
 display. A resident ABI 1.1 ROM that advertises the locale/configuration
 feature uses reset-latched S21 defaults. ABI 1.0 retains its byte-exact fixed
