@@ -24,7 +24,10 @@ CP/M Plus Juku port:
 - `netconsole.asm`: optional resilient remote console;
 - `rom-host-services.asm`: resident N4 console, time, capability, publication,
   bulk-output and reconnect transport. ABI 1.3 uses 27 low-RAM state bytes;
-  the `ROM_ABI_C9` profile (ABI 1.4 and later) uses 29 bytes;
+  the `ROM_ABI_C9` profile (ABI 1.4 and later) uses 29 bytes. ABI 1.3 has
+  unbounded transmit-ready and reply-prefix waits; `ROM_ABI_C9` bounds
+  transmit-ready waits to 8,192 polls and prefix acquisition to 256 scan
+  iterations. Both profiles bound individual receive waits to 8,192 polls;
 - `rom-abi.inc`: fixed network-first ROM manifest, feature, vector, and
   low-RAM ownership constants;
 - `rom-call-gate.asm`: signature/version-checking low-RAM dispatcher for the
@@ -50,7 +53,7 @@ under every UART or input failure.
 After a remote byte is consumed, the next status call polls immediately so a
 command burst is not delayed by the normal idle floor. Consumers whose local
 status scan is itself slow may assemble with `NETCONSOLE_EAGER_POLL`; this
-uses one bounded remote poll per idle status call while leaving the default
+uses one remote request per idle status call while leaving the default
 64-call floor unchanged. Its
 128-iteration transmit drain is the same physical-CS00015-qualified
 turnaround used by NetDisk v3. A longer 400-iteration drain loses the start of
