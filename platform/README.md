@@ -168,8 +168,10 @@ owns the polled platform.
 
 A transitional RAM framebuffer console that runs beside resident ROM defines
 `RAMCONSOLE_MODE1`. Its bounded mode-3 pixel operations then restore mode 1 so
-the next resident service remains callable. A fully RAM-owned BIOS omits it
-and retains mode 3.
+the next resident service remains callable. A fully RAM-owned BIOS defines
+`RAMKEYBOARD` and omits `RAMCONSOLE_MODE1` to retain mode 3. Without
+`RAMKEYBOARD`, the console restores mode 1 even when `RAMCONSOLE_MODE1`
+is absent.
 
 For an all-RAM consumer, and for a resident ABI 1.1 ROM that advertises the
 locale/configuration feature, reset-latched S21 bits 2:1 select the display at
