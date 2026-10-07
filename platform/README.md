@@ -173,9 +173,10 @@ the next resident service remains callable. A fully RAM-owned BIOS defines
 `RAMKEYBOARD`, the console restores mode 1 even when `RAMCONSOLE_MODE1`
 is absent.
 
-For an all-RAM consumer, and for a resident ABI 1.1 ROM that advertises the
-locale/configuration feature, reset-latched S21 bits 2:1 select the display at
-console startup. ABI 1.0 retains its byte-exact fixed 80x24 console:
+An all-RAM consumer reads S21 on each `RAMCONINIT`; bits 2:1 select the
+display. A resident ABI 1.1 ROM that advertises the locale/configuration
+feature uses reset-latched S21 defaults. ABI 1.0 retains its byte-exact fixed
+80x24 console:
 
 | bits 2:1 | text | cell | raster stride |
 | --- | --- | --- | --- |
@@ -189,7 +190,7 @@ the stock/EktaSoft timing writes; the fourth reproduces MODX. ABI 1.0 remains
 the fixed 80x24 baseline. ABI 1.1 and later resident consoles use the same
 switchable policy as the all-RAM implementation.
 
-An all-RAM consumer that defines `RAMLOCALEFONTS` uses the same cold-start
+An all-RAM consumer that defines `RAMLOCALEFONTS` uses the same console-initialization
 sample to select the character bank with S21 bits 4:3:
 
 | bits 4:3 | character bank |
