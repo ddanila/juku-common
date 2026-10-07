@@ -32,6 +32,10 @@ routine performs no static writes and is suitable for ROM or RAM callers, but
 requires a writable stack with room for three extra words. BC, DE, HL, A, and
 flags are destroyed.
 
+The caller must keep interrupts disabled throughout the CPU test: its INX SP
+check temporarily selects `9A00h` as SP before restoring the caller's stack.
+The routine does not disable or restore interrupts itself.
+
 `memory-address.asm` provides a complementary non-destructive address-alias
 test. `HL` is an aligned base byte and `A` is the number of address bits
 (1..15); the routine compares the base with every `base+(1<<n)` location,
