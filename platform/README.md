@@ -41,9 +41,12 @@ compatibility adapter with a native CP/M 3 hardware layer.
 same half-duplex USART as NetDisk. A negotiated N4 consumer calls `NCENA`
 after consuming the capability marker; a direct network-first consumer may
 arm it unconditionally because an unsupported request fails back to local
-console operation. Each character or idle input poll is a
-bounded request/reply turn; a failed host disables the remote path without
-blocking the local screen or keyboard, and later status calls reprobe it.
+console operation. Each character or idle input poll uses a request/reply turn. A receive timeout
+or rejected reply disables the remote path, and later status calls reprobe it.
+Receive-byte waits are bounded; transmit-ready waits are not, and continuous
+noise can keep reply synchronization running. This legacy transport therefore
+has no total transaction deadline and cannot guarantee local-console progress
+under every UART or input failure.
 After a remote byte is consumed, the next status call polls immediately so a
 command burst is not delayed by the normal idle floor. Consumers whose local
 status scan is itself slow may assemble with `NETCONSOLE_EAGER_POLL`; this
@@ -59,17 +62,17 @@ implements the CP/M Plus GET/SET clock contract without changing the host OS
 clock. `NCPUBLISH` sends one idempotent status tuple (raw S21, decoded video
 mode, feature flags, and last clock result) so target and host diagnostics
 report the same configuration without adding unsolicited boot traffic.
-`NCDIAG` uses the same preserved-register and bounded-turn contract for a
+`NCDIAG` uses the same preserved-register request/reply contract for a
 suite/pass/fail/flags result, allowing unattended diagnostics without a raw
 USART owner or a disk-starving stream.
 `NCBOOT` publishes the retained stage/retry/protocol/ABI-minor tuple through
-operation 27h with the same bounded and duplicate-safe behavior.
+operation 27h with the same receive-timeout and duplicate-safe behavior.
 `NCCAPS` performs an explicit, repeatable operation-26h query and returns the
 host's four-byte NetDisk protocol, maximum read-ahead, feature, and drive-count
 record. This is the runtime contract; the earlier N3/N4 startup marker remains
 only a synchronization hint. A native consumer passes the returned feature
 byte to `NCCFG`: an explicit no-console result disables otherwise pointless
-periodic N4 reprobes, while rejection by an older host retains the bounded
+periodic N4 reprobes, while rejection by an older host retains the
 legacy discovery behavior.
 The native profile also keeps saturating reconnect and last-failure fields at
 C65Ch/C65Dh in its documented workspace. They change only after a bounded N4
