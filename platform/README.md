@@ -199,3 +199,26 @@ operation, discards pending key state, and preserves installed key-remap pairs;
 invalid values leave all state unchanged. Warm boot preserves an override,
 while reset or `JCGINIT` restores S21 and performs the normal full keyboard
 initialization that clears remaps.
+
+## Optional serial transport hooks
+
+Define `SHARED_SERIAL` with `ROM_ABI_C9` and `ROMNETDISK` to reuse N4 and
+NetDisk-v3 on another machine. Supply `serial_begin`, `serial_finish`,
+`serial_tx`, and `serial_rx`. TX consumes A; RX returns A. All hooks return
+carry on failure and preserve BC, DE and HL. Begin/finish manage any direction
+switching needed by the hardware; full-duplex implementations may leave the
+transmitter enabled. Polling must be bounded. Begin must not discard a pending
+reply. The consumer owns UART initialization, state allocation and BIOS policy.
+
+Reserve 29 bytes at `ROMHOSTSTATEBASE`, 18 bytes at `ROMNETSTATEBASE`, and
+`N3MAXRECORDS * 128 + 3` bytes at `N3CACHE`. Initialize state before use and
+set the negotiated protocol/capabilities as in the consuming platform. The
+hooked NetDisk receiver limits its reply-prefix scan to 256 bytes and propagates
+transmit errors. It uses a bitwise CRC-16/IBM implementation that works on both
+8080 and Z80: the original parity-fold optimization depends on 8080 ADD parity,
+where Z80 ADD reports overflow instead.
+
+With `SHARED_SERIAL` undefined the existing Juku machine code is unchanged.
+Run `python3 tools/check_serial_hooks.py --assembler /path/to/zmac` to compare
+both legacy and C9 profiles against the pre-hook commit. Robotron's consumer
+also executes the hooked CRC on a Z80 emulator.
