@@ -594,7 +594,36 @@ N3RXC: call    N3RX
         ret
 
 ; CRC-16/IBM, input byte A and running CRC DE; preserves HL.
-N3CRC: push    h
+N3CRC:
+.ifdef SHARED_SERIAL
+        ; Portable across 8080 and Z80: ADD sets parity on 8080 but overflow
+        ; on Z80. The legacy parity-fold optimization below is 8080-only.
+        push    b
+        xra     e
+        mov     e,a
+        mvi     b,8
+N3CRCBIT:
+        mov     a,d
+        ora     a
+        rar
+        mov     d,a
+        mov     a,e
+        rar
+        mov     e,a
+        jnc     N3CRCPLAIN
+        mov     a,d
+        xri     0a0h
+        mov     d,a
+        mov     a,e
+        xri     1
+        mov     e,a
+N3CRCPLAIN:
+        dcr     b
+        jnz     N3CRCBIT
+        pop     b
+        ret
+.else
+        push    h
         xra     e
         mov     l,a
         add     a
@@ -622,6 +651,7 @@ N3CNC: mov     h,a
         pop     h
         ret
 
+.endif
 .ifdef ROMNETDISK
 N3MODE         equ     ROMNETSTATEBASE+6
 N3SEQ          equ     ROMNETSTATEBASE+7
