@@ -198,7 +198,8 @@ N3HEADER:
         call    N3TX
 .ifdef SHARED_SERIAL
         jc      N3BAD
-.endif.ifdef ROMNETDISK
+.endif
+.ifdef ROMNETDISK
         call    N3TURN
 .ifdef SHARED_SERIAL
         jc      N3BAD
