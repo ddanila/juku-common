@@ -125,29 +125,58 @@ N3START:
         mvi     a,3
         sta     N3TRIES
 N3RETRY:
+.ifdef SHARED_SERIAL
+        call    serial_begin
+        jc      N3BAD
+.else
         mvi     a,035h
         out     USARTCTL
+.endif
         mvi     b,0
         mvi     a,'J'
         call    N3SEND
+.ifdef SHARED_SERIAL
+        jc      N3BAD
+.endif
         mvi     a,'D'
         call    N3SEND
+.ifdef SHARED_SERIAL
+        jc      N3BAD
+.endif
 .ifdef ROMNETDISK
         lda     N3OP
 .else
         mvi     a,DKRA
 .endif
         call    N3SEND
+.ifdef SHARED_SERIAL
+        jc      N3BAD
+.endif
         lda     N3SEQ
         call    N3SEND
+.ifdef SHARED_SERIAL
+        jc      N3BAD
+.endif
         lda     SEKDSK
         call    N3SEND
+.ifdef SHARED_SERIAL
+        jc      N3BAD
+.endif
         lda     SEKTRK
         call    N3SEND
+.ifdef SHARED_SERIAL
+        jc      N3BAD
+.endif
         lda     SEKTRK+1
         call    N3SEND
+.ifdef SHARED_SERIAL
+        jc      N3BAD
+.endif
         lda     SEKSEC
         call    N3SEND
+.ifdef SHARED_SERIAL
+        jc      N3BAD
+.endif
 .ifdef ROMNETDISK
         lda     N3OP
         cpi     DKWA
@@ -157,6 +186,9 @@ N3RETRY:
 N3WBYTE:
         mov     a,m
         call    N3SEND
+.ifdef SHARED_SERIAL
+        jc      N3BAD
+.endif
         inx     h
         dcr     d
         jnz     N3WBYTE
@@ -164,8 +196,15 @@ N3HEADER:
 .endif
         mov     a,b
         call    N3TX
-.ifdef ROMNETDISK
+.ifdef SHARED_SERIAL
+        jc      N3BAD
+.endif.ifdef ROMNETDISK
         call    N3TURN
+.ifdef SHARED_SERIAL
+        jc      N3BAD
+        lxi     h,256
+        shld    N3SCAN
+.endif
 .else
         ; The legacy value is retained only so paced cosim can reproduce the
         ; physical CS00015 failure before accepting the turnaround fix.
@@ -183,7 +222,16 @@ N3DRAIN:
         out     USARTCTL
 .endif
 
-N3SYNC:call    N3RX
+N3SYNC:
+.ifdef SHARED_SERIAL
+        lhld    N3SCAN
+        dcx     h
+        shld    N3SCAN
+        mov     a,h
+        ora     l
+        jz      N3BAD
+.endif
+        call    N3RX
         jc      N3BAD
         cpi     'D'
         jnz     N3SYNC
@@ -479,7 +527,11 @@ N3SEND:mov     c,a
         xra     b
         mov     b,a
         mov     a,c
-N3TX:  mov     c,a
+N3TX:
+.ifdef SHARED_SERIAL
+        jmp     serial_tx
+.else
+        mov     c,a
 N3TX1: in      USARTCTL
         ani     1
         jz      N3TX1
@@ -487,11 +539,15 @@ N3TX1: in      USARTCTL
         out     USARTDATA
         ret
 
+.endif
 .ifdef ROMNETDISK
 ; TxRDY says only that the holding register is free. The checksum can still be
 ; behind one byte in the shifter, so cover two 8O1 characters before releasing
 ; TxEN. The legacy delay remains selectable for the physical-failure fixture.
 N3TURN:
+.ifdef SHARED_SERIAL
+        jmp     serial_finish
+.else
 .ifdef NETDISK_V3_LEGACY_DRAIN
         lxi     b,400
 .else
@@ -506,7 +562,12 @@ N3TURN1:
         out     USARTCTL
         ret
 .endif
-N3RX:  push    b
+.endif
+N3RX:
+.ifdef SHARED_SERIAL
+        jmp     serial_rx
+.else
+        push    b
         lxi     b,0            ; 65536 status polls, about one second
 N3RX1: in      USARTCTL
         ani     2
@@ -523,6 +584,7 @@ N3RX2:
         pop     b
         ora     a              ; return data with carry clear
         ret
+.endif
 N3RXC: call    N3RX
         rc
         push    psw
@@ -574,6 +636,9 @@ N3PDCOUNT0     equ     ROMNETDRIVESTATEBASE
 N3PDCOUNT1     equ     ROMNETDRIVESTATEBASE+1
 N3PDPTR0       equ     ROMNETDRIVESTATEBASE+2
 N3PDPTR1       equ     ROMNETDRIVESTATEBASE+4
+.endif
+.ifdef SHARED_SERIAL
+N3SCAN         equ     ROMNETSTATEBASE+16
 .endif
 ROMNETEND:
 .else

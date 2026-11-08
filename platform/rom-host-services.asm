@@ -361,6 +361,10 @@ rh_finish:
 .ifdef ROM_ABI_C9
         jc      rh_fail_tx
 .endif
+.ifdef SHARED_SERIAL
+        call    serial_finish
+        jc      rh_fail_tx
+.else
         lxi     d,128
 rh_drain:
         dcx     d
@@ -369,6 +373,7 @@ rh_drain:
         jnz     rh_drain
         mvi     a,034h
         out     RHUSARTCTL
+.endif
 .ifdef ROM_ABI_C9
         jmp     rh_sync_start
 .else
@@ -379,8 +384,13 @@ rh_begin:
         lda     RHSEQ
         inr     a
         sta     RHSEQ
+.ifdef SHARED_SERIAL
+        call    serial_begin
+        rc
+.else
         mvi     a,035h
         out     RHUSARTCTL
+.endif
         mvi     b,0
         mvi     a,'J'
         call    rh_send
@@ -616,6 +626,9 @@ rh_send:
         mov     b,a
         mov     a,c
 rh_tx:
+.ifdef SHARED_SERIAL
+        jmp     serial_tx
+.else
 .ifdef ROM_ABI_C9
         ; Preserve the wire checksum in B and the caller's C while imposing a
         ; finite transmitter-ready wait. The character itself stays on stack.
@@ -651,7 +664,11 @@ rh_tx_wait:
         ret
 .endif
 
+.endif
 rh_rx:
+.ifdef SHARED_SERIAL
+        jmp     serial_rx
+.else
         push    b
         lxi     b,8192
 rh_rx_wait:
@@ -670,6 +687,7 @@ rh_rx_ready:
         pop     b
         ora     a
         ret
+.endif
 rh_rxc:
         call    rh_rx
         rc
