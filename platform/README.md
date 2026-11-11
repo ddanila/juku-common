@@ -222,3 +222,13 @@ With `SHARED_SERIAL` undefined the existing Juku machine code is unchanged.
 Run `python3 tools/check_serial_hooks.py --assembler /path/to/zmac` to compare
 both legacy and C9 profiles against the pre-hook commit. Robotron's consumer
 also executes the hooked CRC on a Z80 emulator.
+
+### Optional Z80 CRC table
+
+With `SHARED_SERIAL` and `N3Z80TABLE`, NetDisk-v3 uses a fixed-time Z80
+CRC-16/IBM update instead of the portable bitwise implementation. The consumer
+must supply consecutive, page-aligned `N3CRCLO` and `N3CRCHI` tables containing
+the low and high bytes of the 256 reflected A001h entries. The update takes
+72 Z80 clocks, preserves BC and HL, updates DE, and clobbers AF. N3RXC retains
+its existing byte/flags preservation contract. Do not enable on an 8080.
+The Robotron consumer exhaustively tests all state/byte combinations on Z80.

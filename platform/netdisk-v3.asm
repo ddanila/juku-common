@@ -596,6 +596,22 @@ N3RXC: call    N3RX
 ; CRC-16/IBM, input byte A and running CRC DE; preserves HL.
 N3CRC:
 .ifdef SHARED_SERIAL
+ .ifdef N3Z80TABLE
+        .z80
+        ; Split page-aligned tables: no multiply, no carry, BC untouched.
+        push hl
+        xor e
+        ld l,a
+        ld h,N3CRCLO >> 8
+        ld a,(hl)
+        xor d
+        ld e,a
+        inc h
+        ld d,(hl)
+        pop hl
+        ret
+        .8080
+ .else
         ; Portable across 8080 and Z80: ADD sets parity on 8080 but overflow
         ; on Z80. The legacy parity-fold optimization below is 8080-only.
         push    b
@@ -622,6 +638,7 @@ N3CRCPLAIN:
         jnz     N3CRCBIT
         pop     b
         ret
+ .endif
 .else
         push    h
         xra     e
